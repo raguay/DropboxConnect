@@ -1,0 +1,3 @@
+[
+	{ "keys": ["Shift+Ctrl+d"], "command": "get_dropbox_public_link" }
+]
