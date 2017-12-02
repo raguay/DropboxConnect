@@ -121,7 +121,7 @@ class GetDropboxPublicLink(DirectoryPaneCommand):
                     # beginning at the top of the Dropbox
                     # directory.
                     #
-                    fileName = os.path.relpath(fileName,DBDATA['Business'])
+                    fileName = "/" + os.path.relpath(fileName,DBDATA['Business'])
                     try:
                         #
                         # Query Dropbox for the public link.
