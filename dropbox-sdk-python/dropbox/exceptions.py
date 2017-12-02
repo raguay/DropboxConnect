@@ -7,6 +7,9 @@ class DropboxException(Exception):
         super(DropboxException, self).__init__(request_id, *args, **kwargs)
         self.request_id = request_id
 
+    def __str__(self):
+        return repr(self)
+
 
 class ApiError(DropboxException):
     """Errors produced by the Dropbox API."""
@@ -39,8 +42,8 @@ class HttpError(DropboxException):
         self.body = body
 
     def __repr__(self):
-        return 'HttpError({!r}, {}, {!r})'.format(
-                self.request_id, self.status_code, self.body)
+        return 'HttpError({!r}, {}, {!r})'.format(self.request_id,
+            self.status_code, self.body)
 
 
 class BadInputError(HttpError):
@@ -68,12 +71,14 @@ class AuthError(HttpError):
 class RateLimitError(HttpError):
     """Error caused by rate limiting."""
 
-    def __init__(self, request_id, backoff=None):
+    def __init__(self, request_id, error=None, backoff=None):
         super(RateLimitError, self).__init__(request_id, 429, None)
+        self.error = error
         self.backoff = backoff
 
     def __repr__(self):
-        return 'RateLimitError({!r}, {!r})'.format(self.request_id, self.backoff)
+        return 'RateLimitError({!r}, {!r}, {!r})'.format(
+            self.request_id, self.error, self.backoff)
 
 
 class InternalServerError(HttpError):

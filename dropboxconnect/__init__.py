@@ -4,8 +4,8 @@
 from fman import DirectoryPaneCommand, DirectoryPaneListener, show_alert, show_prompt, show_status_message, clear_status_message, load_json, save_json, clipboard
 
 import sys, os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/dropbox-sdk-python")
-from dropbox.client import DropboxClient
+from fman.url import as_human_readable
+from fman.url import as_url
 
 #
 # Global Variable:
@@ -55,6 +55,10 @@ class GetDropboxPublicLink(DirectoryPaneCommand):
     #
     def __call__(self):
         global DBDATA
+
+        sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/dropbox-sdk-python")
+        import dropbox
+
         #
         # Tell the user we are generating the link in the
         # status bar. When the message is gone, they will
@@ -72,7 +76,7 @@ class GetDropboxPublicLink(DirectoryPaneCommand):
         if len(selected_files) >= 1 or (len(selected_files) == 0 and self.get_chosen_files()):
             if len(selected_files) == 0 and self.get_chosen_files():
                 selected_files.append(self.get_chosen_files()[0])
-            fileName = selected_files[0]
+            fileName = as_human_readable(selected_files[0])
             #
             # See if the file is in a Dropbox location.
             #
@@ -85,17 +89,17 @@ class GetDropboxPublicLink(DirectoryPaneCommand):
                     # The secret has been set. Now get the path
                     # from the top of the Dropbox directory.
                     #
-                    fileName = os.path.relpath(fileName,DBDATA['Personal'])
+                    fileName = "/" + os.path.relpath(fileName,DBDATA['Personal'])
                     try:
                         #
                         # Query Dropbox for the public link.
                         #
-                        client = DropboxClient(DBDATA['PersonalSecret'])
-                        link = client.share(fileName, short_url=False)
+                        client = dropbox.Dropbox(DBDATA['PersonalSecret'])
+                        link = client.sharing_create_shared_link(fileName)
                         #
                         # Copy to the clipboard.
                         #
-                        clipboard.set_text(link['url'])
+                        clipboard.set_text(link.url)
                     except:
                         #
                         # There was an error connecting to
@@ -122,12 +126,12 @@ class GetDropboxPublicLink(DirectoryPaneCommand):
                         #
                         # Query Dropbox for the public link.
                         #
-                        client = DropboxClient(DBDATA['BusinessSecret'])
-                        link = client.share(fileName, short_url=False)
+                        client = dropbox.Dropbox(DBDATA['BusinessSecret'])
+                        link = client.sharing_create_shared_link(fileName)
                         #
-                        # Copy the link to the clipboard.
+                        # Copy to the clipboard.
                         #
-                        clipboard.set_text(link['url'])
+                        clipboard.set_text(link.url)
                     except:
                         #
                         # There was a error.
@@ -163,7 +167,7 @@ class SetPersonalDB(DirectoryPaneCommand):
         if len(selected_files) >= 1 or (len(selected_files) == 0 and self.get_chosen_files()):
             if len(selected_files) == 0 and self.get_chosen_files():
                 selected_files.append(self.get_chosen_files()[0])
-            dirName = selected_files[0]
+            dirName = as_human_readable(selected_files[0])
             if os.path.isfile(dirName):
                 #
                 # It's a file, not a directory. Get the directory
@@ -175,6 +179,7 @@ class SetPersonalDB(DirectoryPaneCommand):
             #
             LoadDropBoxDataFile()
             DBDATA['Personal'] = dirName
+            show_alert(dirName)
             SaveDropBoxDataFile()
         clear_status_message()
 
@@ -193,7 +198,7 @@ class SetBusinessDB(DirectoryPaneCommand):
         if len(selected_files) >= 1 or (len(selected_files) == 0 and self.get_chosen_files()):
             if len(selected_files) == 0 and self.get_chosen_files():
                 selected_files.append(self.get_chosen_files()[0])
-            dirName = selected_files[0]
+            dirName = as_human_readable(selected_files[0])
             if os.path.isfile(dirName):
                 #
                 # It's a file, not a directory. Get the directory
@@ -253,7 +258,7 @@ class GoToPersonalDB(DirectoryPaneCommand):
         global DBDATA
         LoadDropBoxDataFile()
         if DBDATA['Personal'] != '':
-            self.pane.set_path(DBDATA['Personal'])
+            self.pane.set_path(as_url(DBDATA['Personal']))
         else:
             show_alert("Personal directory isn't set.")
 
@@ -268,7 +273,7 @@ class GoToBusinessDB(DirectoryPaneCommand):
         global DBDATA
         LoadDropBoxDataFile()
         if DBDATA['Business'] != '':
-            self.pane.set_path(DBDATA['Business'])
+            self.pane.set_path(as_url(DBDATA['Business']))
         else:
             show_alert("Business directory isn't set.")
 #
@@ -276,6 +281,8 @@ class GoToBusinessDB(DirectoryPaneCommand):
 #
 def path_is_parent(parent_path, child_path):
     # Smooth out relative path names, note: if you are concerned about symbolic links, you should use os.path.realpath too
+    show_alert(parent_path)
+    show_alert(child_path)
     parent_path = os.path.abspath(parent_path)
     child_path = os.path.abspath(child_path)
 

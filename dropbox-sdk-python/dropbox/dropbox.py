@@ -4,20 +4,24 @@ __all__ = [
     'create_session',
 ]
 
-# TODO(kelkabany): We need to auto populate this as done in the v1 SDK.
-__version__ = '5.2.1'
+# This should always be 0.0.0 in master. Only update this after tagging
+# before release.
+__version__ = '8.5.0'
 
 import contextlib
 import json
 import logging
-import os
 import random
-import six
 import time
 
 import requests
+import six
 
-from . import babel_serializers
+from . import files, stone_serializers
+from .auth import (
+    AuthError_validator,
+    RateLimitError_validator,
+)
 from .base import DropboxBase
 from .base_team import DropboxTeamBase
 from .exceptions import (
@@ -28,8 +32,15 @@ from .exceptions import (
     InternalServerError,
     RateLimitError,
 )
-from .session import pinned_session
-
+from .session import (
+    API_HOST,
+    API_CONTENT_HOST,
+    API_NOTIFICATION_HOST,
+    HOST_API,
+    HOST_CONTENT,
+    HOST_NOTIFY,
+    pinned_session,
+)
 
 class RouteResult(object):
     """The successful result of a call to a route."""
@@ -50,7 +61,6 @@ class RouteResult(object):
         self.obj_result = obj_result
         self.http_resp = http_resp
 
-
 class RouteErrorResult(object):
     """The error result of a call to a route."""
 
@@ -64,13 +74,11 @@ class RouteErrorResult(object):
         self.request_id = request_id
         self.obj_result = obj_result
 
-
 def create_session(max_connections=8, proxies=None):
     """
     Creates a session object that can be used by multiple :class:`Dropbox` and
     :class:`DropboxTeam` instances. This lets you share a connection pool
     amongst them, as well as proxy parameters.
-
 
     :param int max_connections: Maximum connection pool size.
     :param dict proxies: See the `requests module
@@ -86,7 +94,6 @@ def create_session(max_connections=8, proxies=None):
         session.proxies = proxies
     return session
 
-
 class _DropboxTransport(object):
     """
     Responsible for implementing the wire protocol for making requests to the
@@ -94,17 +101,6 @@ class _DropboxTransport(object):
     """
 
     _API_VERSION = '2'
-
-    _DEFAULT_DOMAIN = '.dropboxapi.com'
-
-    # Host for RPC-style routes.
-    _HOST_API = 'api'
-
-    # Host for upload and download-style routes.
-    _HOST_CONTENT = 'content'
-
-    # Host for longpoll routes.
-    _HOST_NOTIFY = 'notify'
 
     # Download style means that the route argument goes in a Dropbox-API-Arg
     # header, and the result comes back in a Dropbox-API-Result header. The
@@ -120,13 +116,17 @@ class _DropboxTransport(object):
     # the HTTP body.
     _ROUTE_STYLE_RPC = 'rpc'
 
+    # This is the default longest time we'll block on receiving data from the server
+    _DEFAULT_TIMEOUT = 30
+
     def __init__(self,
                  oauth2_access_token,
                  max_retries_on_error=4,
                  max_retries_on_rate_limit=None,
                  user_agent=None,
                  session=None,
-                 headers=None):
+                 headers=None,
+                 timeout=_DEFAULT_TIMEOUT):
         """
         :param str oauth2_access_token: OAuth2 access token for making client
             requests.
@@ -138,12 +138,17 @@ class _DropboxTransport(object):
         :param str user_agent: The user agent to use when making requests. This
             helps us identify requests coming from your application. We
             recommend you use the format "AppName/Version". If set, we append
-            "/OfficialDropboxPythonV2SDK/__version__" to the user_agent,
+            "/OfficialDropboxPythonSDKv2/__version__" to the user_agent,
         :param session: If not provided, a new session (connection pool) is
             created. To share a session across multiple clients, use
             :func:`create_session`.
         :type session: :class:`requests.sessions.Session`
         :param dict headers: Additional headers to add to requests.
+        :param Optional[float] timeout: Maximum duration in seconds that
+            client will wait for any single packet from the
+            server. After the timeout the client will give up on
+            connection. If `None`, client will wait forever. Defaults
+            to 30 seconds.
         """
         assert len(oauth2_access_token) > 0, \
             'OAuth2 access token cannot be empty.'
@@ -171,26 +176,18 @@ class _DropboxTransport(object):
 
         self._logger = logging.getLogger('dropbox')
 
-        self._domain = os.environ.get('DROPBOX_DOMAIN', Dropbox._DEFAULT_DOMAIN)
-        self._api_hostname = os.environ.get(
-            'DROPBOX_API_HOST', 'api' + self._domain)
-        self._api_content_hostname = os.environ.get(
-            'DROPBOX_API_CONTENT_HOST', 'content' + self._domain)
-        self._api_notify_hostname = os.environ.get(
-            'DROPBOX_API_NOTIFY_HOST', 'notify' + self._domain)
-        self._host_map = {self._HOST_API: self._api_hostname,
-                          self._HOST_CONTENT: self._api_content_hostname,
-                          self._HOST_NOTIFY: self._api_notify_hostname}
+        self._host_map = {HOST_API: API_HOST,
+                          HOST_CONTENT: API_CONTENT_HOST,
+                          HOST_NOTIFY: API_NOTIFICATION_HOST}
+
+        self._timeout = timeout
 
     def request(self,
-                host,
-                route_name,
-                route_style,
-                arg_data_type,
-                result_data_type,
-                error_data_type,
+                route,
+                namespace,
                 request_arg,
-                request_binary):
+                request_binary,
+                timeout=None):
         """
         Makes a request to the Dropbox API and in the process validates that
         the route argument and result are the expected data types. The
@@ -199,41 +196,57 @@ class _DropboxTransport(object):
         on the {result,error}_data_type.
 
         :param host: The Dropbox API host to connect to.
-        :param route_name: The name of the route to invoke.
-        :param route_style: The style of the route.
-        :type arg_data_type: :class:`.datatypes.babel_validators.DataType`
-        :type result_data_type: :class:`.datatypes.babel_validators.DataType`
-        :type error_data_type: :class:`.datatypes.babel_validators.DataType`
+        :param route: The route to make the request to.
+        :type route: :class:`.datatypes.stone_base.Route`
         :param request_arg: Argument for the route that conforms to the
-            validator specified by arg_data_type.
+            validator specified by route.arg_type.
         :param request_binary: String or file pointer representing the binary
             payload. Use None if there is no binary payload.
+        :param Optional[float] timeout: Maximum duration in seconds
+            that client will wait for any single packet from the
+            server. After the timeout the client will give up on
+            connection. If `None`, will use default timeout set on
+            Dropbox object.  Defaults to `None`.
         :return: The route's result.
         """
-
-        serialized_arg = babel_serializers.json_encode(arg_data_type,
+        host = route.attrs['host'] or 'api'
+        route_name = namespace + '/' + route.name
+        route_style = route.attrs['style'] or 'rpc'
+        serialized_arg = stone_serializers.json_encode(route.arg_type,
                                                        request_arg)
+
+        if (timeout is None and
+                route == files.list_folder_longpoll):
+            # The client normally sends a timeout value to the
+            # longpoll route. The server will respond after
+            # <timeout> + random(0, 90) seconds. We increase the
+            # socket timeout to the longpoll timeout value plus 90
+            # seconds so that we don't cut the server response short
+            # due to a shorter socket timeout.
+            # NB: This is done here because base.py is auto-generated
+            timeout = request_arg.timeout + 90
+
         res = self.request_json_string_with_retry(host,
                                                   route_name,
                                                   route_style,
                                                   serialized_arg,
-                                                  request_binary)
+                                                  request_binary,
+                                                  timeout=timeout)
         decoded_obj_result = json.loads(res.obj_result)
         if isinstance(res, RouteResult):
-            returned_data_type = result_data_type
+            returned_data_type = route.result_type
             obj = decoded_obj_result
         elif isinstance(res, RouteErrorResult):
-            returned_data_type = error_data_type
+            returned_data_type = route.error_type
             obj = decoded_obj_result['error']
             user_message = decoded_obj_result.get('user_message')
             user_message_text = user_message and user_message.get('text')
-            user_message_locale =  user_message and user_message.get('locale')
+            user_message_locale = user_message and user_message.get('locale')
         else:
             raise AssertionError('Expected RouteResult or RouteErrorResult, '
                                  'but res is %s' % type(res))
 
-
-        deserialized_result = babel_serializers.json_compat_obj_decode(
+        deserialized_result = stone_serializers.json_compat_obj_decode(
             returned_data_type, obj, strict=False)
 
         if isinstance(res, RouteErrorResult):
@@ -251,7 +264,8 @@ class _DropboxTransport(object):
                             route_name,
                             route_style,
                             request_arg,
-                            request_binary):
+                            request_binary,
+                            timeout=None):
         """
         Makes a request to the Dropbox API, taking a JSON-serializable Python
         object as an argument, and returning one as a response.
@@ -261,8 +275,13 @@ class _DropboxTransport(object):
         :param route_style: The style of the route.
         :param str request_arg: A JSON-serializable Python object representing
             the argument for the route.
-        :param request_binary: String or file pointer representing the binary
+        :param Optional[bytes] request_binary: Bytes representing the binary
             payload. Use None if there is no binary payload.
+        :param Optional[float] timeout: Maximum duration in seconds
+            that client will wait for any single packet from the
+            server. After the timeout the client will give up on
+            connection. If `None`, will use default timeout set on
+            Dropbox object.  Defaults to `None`.
         :return: The route's result as a JSON-serializable Python object.
         """
         serialized_arg = json.dumps(request_arg)
@@ -270,7 +289,8 @@ class _DropboxTransport(object):
                                                   route_name,
                                                   route_style,
                                                   serialized_arg,
-                                                  request_binary)
+                                                  request_binary,
+                                                  timeout=timeout)
         # This can throw a ValueError if the result is not deserializable,
         # but that would be completely unexpected.
         deserialized_result = json.loads(res.obj_result)
@@ -284,7 +304,8 @@ class _DropboxTransport(object):
                                        route_name,
                                        route_style,
                                        request_json_arg,
-                                       request_binary):
+                                       request_binary,
+                                       timeout=None):
         """
         See :meth:`request_json_object` for description of parameters.
 
@@ -300,7 +321,8 @@ class _DropboxTransport(object):
                                                 route_name,
                                                 route_style,
                                                 request_json_arg,
-                                                request_binary)
+                                                request_binary,
+                                                timeout=timeout)
             except InternalServerError as e:
                 attempt += 1
                 if attempt <= self._max_retries_on_error:
@@ -320,7 +342,7 @@ class _DropboxTransport(object):
                     backoff = e.backoff if e.backoff is not None else 5.0
                     self._logger.info(
                         'Ratelimit: Retrying in %.1f seconds.', backoff)
-                    time.sleep(e.backoff)
+                    time.sleep(backoff)
                 else:
                     raise
 
@@ -329,7 +351,8 @@ class _DropboxTransport(object):
                             func_name,
                             route_style,
                             request_json_arg,
-                            request_binary):
+                            request_binary,
+                            timeout=None):
         """
         See :meth:`request_json_string_with_retry` for description of
         parameters.
@@ -337,12 +360,20 @@ class _DropboxTransport(object):
         if host not in self._host_map:
             raise ValueError('Unknown value for host: %r' % host)
 
+        if not isinstance(request_binary, (six.binary_type, type(None))):
+            # Disallow streams and file-like objects even though the underlying
+            # requests library supports them. This is to prevent incorrect
+            # behavior when a non-rewindable stream is read from, but the
+            # request fails and needs to be re-tried at a later time.
+            raise TypeError('expected request_binary as binary type, got %s' %
+                            type(request_binary))
+
         # Fully qualified hostname
         fq_hostname = self._host_map[host]
         url = self._get_route_url(fq_hostname, func_name)
 
         headers = {'User-Agent': self._user_agent}
-        if host != self._HOST_NOTIFY:
+        if host != HOST_NOTIFY:
             headers['Authorization'] = 'Bearer %s' % self._oauth2_access_token
             if self._headers:
                 headers.update(self._headers)
@@ -367,11 +398,15 @@ class _DropboxTransport(object):
         else:
             raise ValueError('Unknown operation style: %r' % route_style)
 
+        if timeout is None:
+            timeout = self._timeout
+
         r = self._session.post(url,
                                headers=headers,
                                data=body,
                                stream=stream,
                                verify=True,
+                               timeout=timeout,
                                )
 
         request_id = r.headers.get('x-dropbox-request-id')
@@ -383,12 +418,22 @@ class _DropboxTransport(object):
             assert r.headers.get('content-type') == 'application/json', (
                 'Expected content-type to be application/json, got %r' %
                 r.headers.get('content-type'))
-            raise AuthError(request_id, r.json())
+            err = stone_serializers.json_compat_obj_decode(
+                AuthError_validator, r.json()['error'])
+            raise AuthError(request_id, err)
         elif r.status_code == 429:
-            retry_after = r.headers.get('retry-after')
-            if retry_after is not None:
-                retry_after = int(retry_after)
-            raise RateLimitError(request_id, retry_after)
+            err = None
+            if r.headers.get('content-type') == 'application/json':
+                err = stone_serializers.json_compat_obj_decode(
+                    RateLimitError_validator, r.json()['error'])
+                retry_after = err.retry_after
+            else:
+                retry_after_str = r.headers.get('retry-after')
+                if retry_after_str is not None:
+                    retry_after = int(retry_after_str)
+                else:
+                    retry_after = None
+            raise RateLimitError(request_id, err, retry_after)
         elif 200 <= r.status_code <= 299:
             if route_style == self._ROUTE_STYLE_DOWNLOAD:
                 raw_resp = r.headers['dropbox-api-result']
@@ -434,7 +479,6 @@ class _DropboxTransport(object):
                 for c in http_resp.iter_content(chunksize):
                     f.write(c)
 
-
 class Dropbox(_DropboxTransport, DropboxBase):
     """
     Use this class to make requests to the Dropbox API using a user's access
@@ -442,7 +486,6 @@ class Dropbox(_DropboxTransport, DropboxBase):
     Dropbox.
     """
     pass
-
 
 class DropboxTeam(_DropboxTransport, DropboxTeamBase):
     """
@@ -465,6 +508,7 @@ class DropboxTeam(_DropboxTransport, DropboxTeamBase):
         return Dropbox(
             self._oauth2_access_token,
             max_retries_on_error=self._max_retries_on_error,
+            max_retries_on_rate_limit=self._max_retries_on_rate_limit,
             user_agent=self._raw_user_agent,
             session=self._session,
             headers=new_headers,
