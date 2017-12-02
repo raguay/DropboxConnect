@@ -179,7 +179,6 @@ class SetPersonalDB(DirectoryPaneCommand):
             #
             LoadDropBoxDataFile()
             DBDATA['Personal'] = dirName
-            show_alert(dirName)
             SaveDropBoxDataFile()
         clear_status_message()
 
@@ -281,8 +280,6 @@ class GoToBusinessDB(DirectoryPaneCommand):
 #
 def path_is_parent(parent_path, child_path):
     # Smooth out relative path names, note: if you are concerned about symbolic links, you should use os.path.realpath too
-    show_alert(parent_path)
-    show_alert(child_path)
     parent_path = os.path.abspath(parent_path)
     child_path = os.path.abspath(child_path)
 
