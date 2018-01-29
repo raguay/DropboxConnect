@@ -1,6 +1,6 @@
 ## Dropbox Connect
 
-Plugin for [fman.io](https://fman.io) that allows you to perform actions on your Dropbox files.
+Plugin for [fman.io](https://fman.io) that allows you to perform actions on your Dropbox files. This plugin also contains the Dropbox file system for interacting with your Dropbox accounts just like you local disk. Currently, only browsing the file system is implemented. I'm working on the rest.
 
 You can install this plugin by pressing `<shift+cmd+p>` to open the command pallet. Then type `install plugin`. Look for the `DropboxConnect` plugin and select it.
 
@@ -43,6 +43,10 @@ After restarting **fman**, you will have the ability to get a public link to a f
 `go_to_business_db`
 
 - This command will go to the directory set for the business Dropbox.
+
+`go_to_dropbox_file_system`
+
+This command will open the current panel in the Dropbox file system. Currently, only browsing the files is implemented. This is still a work in progress.
 
 #### Files Created and Used
 
