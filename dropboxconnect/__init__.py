@@ -3,9 +3,8 @@
 #
 from fman import DirectoryPaneCommand, DirectoryPaneListener, show_alert, show_prompt, show_status_message, clear_status_message, load_json, save_json, clipboard
 
-from fman.fs import FileSystem
-from fman.url import as_human_readable
-from fman.url import as_url
+from fman.fs import FileSystem, UnsupportedOperation
+from fman.url import as_human_readable, as_url, splitscheme
 
 import sys
 import os
@@ -21,7 +20,6 @@ import dropbox
 DBDATA = None
 BUSCLIENT = None
 PERCLIENT = None
-CURDIRLIST = None
 
 def ConnectToClient():
     global BUSCLIENT, PERCLIENT, DBDATA
@@ -52,6 +50,7 @@ def LoadDropBoxDataFile():
             DBDATA['Business'] = ''
             DBDATA['PersonalSecret'] = ''
             DBDATA['BusinessSecret'] = ''
+            SaveDropBoxDataFile()
 
 #
 # Function:    SaveDropBoxDataFile
@@ -367,12 +366,7 @@ class DropBoxFileSystem(FileSystem):
         #
         # Load in the Dropbox data files if not already loaded.
         #
-        global BUSCLIENT, PERCLIENT, DBDATA, CURDIRLIST
-
-        #
-        # Setup defaults.
-        #
-        dirContents = []
+        global BUSCLIENT, PERCLIENT, DBDATA
 
         #
         # Process dependently on the path given.
@@ -383,13 +377,14 @@ class DropBoxFileSystem(FileSystem):
             #
             LoadDropBoxDataFile()
             if DBDATA['Business'] != '':
-                dirContents.append(os.path.basename(DBDATA['Business']))
+                yield os.path.basename(DBDATA['Business'])
             if DBDATA['Personal'] != '':
-                dirContents.append(os.path.basename(DBDATA['Personal']))
+                yield os.path.basename(DBDATA['Personal'])
         else:
             #
             # Get the directory contents from Dropbox.
             #
+            show_status_message("Loading Dropbox files...")
             dirNames = path.split('/')
             mainName = dirNames[0]
             ConnectToClient()
@@ -402,39 +397,132 @@ class DropBoxFileSystem(FileSystem):
             #
             # List the directory.
             #
-            if len(dirNames) > 1:
+            joinedPath = ''
+            if len(dirNames[1:]) > 0:
                 joinedPath = "/" + "/".join(dirNames[1:])
-            else:
-                joinedPath = "/".join(dirNames[1:])
-            CURDIRLIST = client.files_list_folder(path=joinedPath, recursive=False)
-            for file in CURDIRLIST.entries:
-                dirContents.append(file.name)
-        return dirContents
+
+            def _getDropboxFiles():
+                return client.files_list_folder(path=joinedPath, recursive=False)
+
+            curDirList = self.cache.query(path, "entries", _getDropboxFiles)
+            for file in curDirList.entries:
+                size = ''
+                isDir = True
+                if not isinstance(file, dropbox.files.FolderMetadata):
+                    size = file.size
+                    isDir = False
+                self.cache.put(path + "/" + file.name, "Name", file.name)
+                self.cache.put(path + "/" + file.name, "Size", size)
+                self.cache.put(path + "/" + file.name, "isDir", isDir)
+                yield file.name
+            clear_status_message()
 
     def is_dir(self, path):
         #
         # Load in the Dropbox data files if not already loaded.
         #
-        global BUSCLIENT, PERCLIENT, DBDATA, CURDIRLIST
+        global DBDATA
 
-        ConnectToClient()
+        #
+        # Make sure we are connected.
+        #
+        LoadDropBoxDataFile()
+
+        #
+        # Get the right thing based on the path.
+        #
         isADir = False
         if path == '':
+            #
+            # The topmost is a directory.
+            #
             isADir = True
         elif path == os.path.basename(DBDATA['Business']):
+            #
+            # The Business Dropbox is a directory.
+            #
             isADir = True
         elif path == os.path.basename(DBDATA['Personal']):
+            #
+            # The Personal Dropbox is a directory.
+            #
             isADir = True
         else:
-            dirNames = path.split('/')
-            for entry in CURDIRLIST.entries:
-                if entry.name == dirNames[-1]:
-                    if isinstance(entry, dropbox.files.FolderMetadata):
-                        isADir = True
+            #
+            # Everything else, we need to get from Dropbox. use
+            # the last query information to determine if it is
+            # a directory.
+            #
+            def _returnFalse():
+                return False
+            isADir = self.cache.query(path, "isDir", _returnFalse)
         return isADir
 
-#    def get_default_columns(self, path):
-#        return 'core.Name'
+    def get_default_columns(self, path):
+        return ('core.Name',)
+
+    def copy(self, src, dst):
+        if src == '' or dst == '':
+            return
+
+        src_scheme, src_path = splitscheme(src)
+        dst_scheme, dst_path = splitscheme(dst)
+        if src_scheme == 'dropbox://' and dst_scheme == 'file://':
+            #
+            # Download the file.
+            #
+            show_alert("Download: Copy from " + src + " to " + dst)
+        elif src_scheme == 'file://' and dst_scheme == 'dropbox://':
+            #
+            # Upload the file.
+            #
+            show_alert("Upload: Copy from " + src + " to " + dst)
+        elif src_scheme == dst_scheme:
+            #
+            # Dropbox to Dropbox copy.
+            #
+            show_alert("Acrossload: Copy from " + src + " to " + dst)
+        else:
+            raise UnsupportedOperation()
+
+    def move(self, src, dst):
+        if src == '' or dst == '':
+            return
+
+        src_scheme, src_path = splitscheme(src)
+        dst_scheme, dst_path = splitscheme(dst)
+        if src_scheme == 'dropbox://' and dst_scheme == 'file://':
+            #
+            # Download the file and delete it off of Dropbox.
+            #
+            show_alert("Download & Delete: Move from " + src + " to " + dst)
+        elif src_scheme == 'file://' and dst_scheme == 'dropbox://':
+            #
+            # Upload the file and delete from file system.
+            #
+            show_alert("Upload & Delete: Move from " + src + " to " + dst)
+        elif src_scheme == dst_scheme:
+            #
+            # Dropbox to Dropbox copy and then delete original.
+            #
+            show_alert("Acrossload & Delete: Move from " + src + " to " + dst)
+        else:
+            raise UnsupportedOperation()
+
+    def delete(self, file_url):
+        show_alert("Delete the file: " + file_url)
+
+    def move_to_trash(self, file_url):
+        show_alert("Trash the file: " + file_url)
+
+    def mkdir(self, dir_url):
+        show_alert("Make the directory: " + dir_url)
+
+    def touch(self, file_url):
+        show_alert("Touch the file: " + file_url)
+
+#    def resolve(self, file_url):
+#        return(file_url)
 
 #    def resolve(self, path):
 #        return resolved_path
