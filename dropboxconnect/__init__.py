@@ -3,13 +3,14 @@
 #
 from fman import DirectoryPaneCommand, DirectoryPaneListener, show_alert, show_prompt, show_status_message, clear_status_message, load_json, save_json, clipboard
 
-from fman.fs import FileSystem, UnsupportedOperation
+from fman.fs import FileSystem, UnsupportedOperation, exists, Column
 from fman.url import as_human_readable, as_url, splitscheme
 
 import sys
 import os
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/dropbox-sdk-python")
+sys.path.append(os.path.dirname(os.path.dirname(
+    os.path.realpath(__file__))) + "/dropbox-sdk-python")
 
 import dropbox
 
@@ -20,6 +21,7 @@ import dropbox
 DBDATA = None
 BUSCLIENT = None
 PERCLIENT = None
+
 
 def ConnectToClient():
     global BUSCLIENT, PERCLIENT, DBDATA
@@ -39,6 +41,7 @@ def ConnectToClient():
 #              doesn't exist, it creates a default
 #              dictionary.
 #
+
 
 def LoadDropBoxDataFile():
     global DBDATA
@@ -136,7 +139,8 @@ class GetDropboxPublicLink(DirectoryPaneCommand):
                     #
                     # The secret wasn't set. Tell the user.
                     #
-                    show_alert("Please setup the secret for the personal Dropbox account.")
+                    show_alert(
+                        "Please setup the secret for the personal Dropbox account.")
             elif path_is_parent(DBDATA['Business'], fileName):
                 #
                 # It's the business Dropbox location.
@@ -168,7 +172,8 @@ class GetDropboxPublicLink(DirectoryPaneCommand):
                     #
                     # The secret hasn't been set. Tell the user.
                     #
-                    show_alert("Please setup the secret for the business Dropbox account.")
+                    show_alert(
+                        "Please setup the secret for the business Dropbox account.")
             else:
                 #
                 # It's not a Dropbox file. Tell the user.
@@ -353,7 +358,10 @@ def path_is_parent(parent_path, child_path):
 #              directory structure to the current panel. This allows
 #              the user to go to that file system.
 #
+
+
 class GoToDropboxFileSystem(DirectoryPaneCommand):
+
     def __call__(self):
         self.pane.set_path('dropbox://')
 
@@ -377,22 +385,33 @@ class DropBoxFileSystem(FileSystem):
             #
             LoadDropBoxDataFile()
             if DBDATA['Business'] != '':
-                yield os.path.basename(DBDATA['Business'])
+                name = os.path.basename(DBDATA['Business'])
+                self.cache.put(name, "Name", name)
+                self.cache.put(name, "Size", '')
+                self.cache.put(name, "isDir", True)
+                yield name
             if DBDATA['Personal'] != '':
-                yield os.path.basename(DBDATA['Personal'])
+                name = os.path.basename(DBDATA['Personal'])
+                self.cache.put(name, "Name", name)
+                self.cache.put(name, "Size", '')
+                self.cache.put(name, "isDir", True)
+                yield name
         else:
             #
             # Get the directory contents from Dropbox.
             #
-            show_status_message("Loading Dropbox files...")
+            show_status_message("Loading Dropbox information...")
             dirNames = path.split('/')
-            mainName = dirNames[0]
             ConnectToClient()
             client = None
-            if mainName == os.path.basename(DBDATA['Business']):
+            if dirNames[0] == os.path.basename(DBDATA['Business']):
                 client = BUSCLIENT
             else:
                 client = PERCLIENT
+
+            if client is None:
+                show_alert("Dropbox information isn't configured.")
+                raise FileNotFoundError(path)
 
             #
             # List the directory.
@@ -405,6 +424,10 @@ class DropBoxFileSystem(FileSystem):
                 return client.files_list_folder(path=joinedPath, recursive=False)
 
             curDirList = self.cache.query(path, "entries", _getDropboxFiles)
+            self.cache.put(path, "Name", dirNames[-1])
+            self.cache.put(path, "Size", "")
+            self.cache.put(path, "isDir", True)
+            self.cache.put(path, "synced", IsPathSynced(as_url(path)))
             for file in curDirList.entries:
                 size = ''
                 isDir = True
@@ -414,6 +437,7 @@ class DropBoxFileSystem(FileSystem):
                 self.cache.put(path + "/" + file.name, "Name", file.name)
                 self.cache.put(path + "/" + file.name, "Size", size)
                 self.cache.put(path + "/" + file.name, "isDir", isDir)
+                self.cache.put(path + "/" + file.name, "synced", IsPathSynced(as_url(path + "/" + file.name)))
                 yield file.name
             clear_status_message()
 
@@ -458,8 +482,27 @@ class DropBoxFileSystem(FileSystem):
             isADir = self.cache.query(path, "isDir", _returnFalse)
         return isADir
 
+    def size_bytes(self, path):
+        def _returnEmpty():
+            return None
+        result = self.cache.query(path, "Size", _returnEmpty)
+        if result is None:
+            raise FileNotFoundError(path)
+        else:
+            return result
+
+    def name(self, path):
+        def _returnEmpty():
+            return None
+        result = self.cache.query(path, "Name", _returnEmpty)
+        if result is None:
+            raise FileNotFoundError(path)
+        else:
+            return result
+
     def get_default_columns(self, path):
-        return ('core.Name',)
+        return ('core.Name', 'core.Size', 'dropboxconnect.Synced')
+#        return ('core.Name', )
 
     def copy(self, src, dst):
         if src == '' or dst == '':
@@ -526,3 +569,39 @@ class DropBoxFileSystem(FileSystem):
 
 #    def resolve(self, path):
 #        return resolved_path
+
+def IsPathSynced(path):
+    #
+    # Get the global data and set the default.
+    #
+    global DBDATA
+    result = ''
+    scheme, dirNames = splitscheme(path)
+    dirNames = dirNames.split("/")
+    print("\nStarting to check....\n")
+
+    #
+    # determine the results.
+    #
+    pathParts = []
+    if dirNames[0] == os.path.basename(DBDATA['Business']):
+        pathParts.append(DBDATA['Business'])
+    elif dirNames[0] == os.path.basename(DBDATA['Personal']):
+        pathParts.append(DBDATA['Personal'])
+    else:
+        raise FileNotFoundError(path)
+    pathParts += dirNames[1:]
+    if exists(as_url("/".join(pathParts))):
+        result = '   🔄'
+
+    #
+    # return the result.
+    #
+    return result
+
+class Synced(Column):
+    def get_str(self, url):
+        return str(self.get_sort_value(url))
+
+    def get_sort_value(self, url, is_ascending=True):
+        return IsPathSynced(url)

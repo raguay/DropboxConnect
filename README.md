@@ -1,6 +1,6 @@
 ## Dropbox Connect
 
-Plugin for [fman.io](https://fman.io) that allows you to perform actions on your Dropbox files. This plugin also contains the Dropbox file system for interacting with your Dropbox accounts just like you local disk. Currently, only browsing the file system is implemented. I'm working on the rest.
+Plugin for [fman.io](https://fman.io) that allows you to perform actions on your Dropbox files. This plugin also contains the Dropbox file system for interacting with your Dropbox accounts just like you local disk. Currently, only browsing the file system is implemented. The browsing shows the file/directory names, size of the files only, and an 🔄 if it is synced to your file system. I'm working on copy, move, delete, and getting the public link for files in the Dropbox filesystem.
 
 You can install this plugin by pressing `<shift+cmd+p>` to open the command pallet. Then type `install plugin`. Look for the `DropboxConnect` plugin and select it.
 
@@ -67,3 +67,4 @@ Now you can select any file in a Dropbox directry and use the `get Dropbox publi
 ### Features
 
 - Get a public sharable link for a file or directory from Dropbox.
+- Browse the Dropbox files from the cloud server.
