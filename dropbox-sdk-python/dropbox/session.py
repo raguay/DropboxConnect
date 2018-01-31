@@ -1,5 +1,5 @@
-import pkg_resources
 import os
+import os.path
 import ssl
 
 import requests
@@ -29,7 +29,7 @@ API_CONTENT_HOST = os.environ.get('DROPBOX_API_CONTENT_HOST', HOST_CONTENT + API
 API_NOTIFICATION_HOST = os.environ.get('DROPBOX_API_NOTIFY_HOST', HOST_NOTIFY + API_DOMAIN)
 WEB_HOST = os.environ.get('DROPBOX_WEB_HOST', HOST_WWW + WEB_DOMAIN)
 
-_TRUSTED_CERT_FILE = pkg_resources.resource_filename(__name__, 'trusted-certs.crt')
+_TRUSTED_CERT_FILE = os.path.join(os.path.dirname(__file__), 'trusted-certs.crt')
 
 # TODO(kelkabany): We probably only want to instantiate this once so that even
 # if multiple Dropbox objects are instantiated, they all share the same pool.
