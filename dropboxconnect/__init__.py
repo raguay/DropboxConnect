@@ -505,6 +505,9 @@ class DropBoxFileSystem(FileSystem):
 #        return ('core.Name', )
 
     def copy(self, src, dst):
+        #
+        # No root copying.
+        #
         if src == '' or dst == '':
             return
 
@@ -512,9 +515,57 @@ class DropBoxFileSystem(FileSystem):
         dst_scheme, dst_path = splitscheme(dst)
         if src_scheme == 'dropbox://' and dst_scheme == 'file://':
             #
+            # Tell the user what we are doing.
+            #
+            show_status_message("Copying from Dropbox to Filesystem...")
+
+            #
             # Download the file.
             #
-            show_alert("Download: Copy from " + src + " to " + dst)
+
+            #
+            # A simple function to get the isDir status of a file on 
+            # Dropbox.
+            #
+            def _returnNone():
+                return None
+
+            #
+            # Determine if it is a directory or a file.
+            #
+            if self.cache.query(src_path, "isDir", _returnNone) == True:
+                #
+                # This will copy a directory. Not supported yet...
+                #
+                show_alert("This is a file copy routine.")
+                raise FileNotFoundError()
+            else:
+                #
+                # This copies a single file.
+                #
+                ConnectToClient()
+                srcDirNames = src_path.split("/")
+                client = None
+                if srcDirNames[0] == os.path.basename(DBDATA['Business']):
+                    client = BUSCLIENT
+                else:
+                    client = PERCLIENT
+
+                if client is None:
+                    show_alert("Dropbox information isn't configured.")
+                    raise FileNotFoundError(path)
+
+                dbFileLoc = "/" + "/".join(srcDirNames[1:])
+                if dbFileLoc == '/':
+                    show_alert("Can't Copy the whole file system!")
+                    raise FileNotFoundError()
+
+                try:
+                    client.files_download_to_file(dst_path, dbFileLoc)
+                except Exception as e:
+                    print(e)
+                    raise FileNotFoundError()
+            clear_status_message()
         elif src_scheme == 'file://' and dst_scheme == 'dropbox://':
             #
             # Upload the file.
@@ -564,21 +615,13 @@ class DropBoxFileSystem(FileSystem):
     def touch(self, file_url):
         show_alert("Touch the file: " + file_url)
 
-#    def resolve(self, file_url):
-#        return(file_url)
-
-#    def resolve(self, path):
-#        return resolved_path
-
-def IsPathSynced(path):
+def DropboxPathToLocalPath(path):
     #
     # Get the global data and set the default.
     #
     global DBDATA
-    result = ''
     scheme, dirNames = splitscheme(path)
     dirNames = dirNames.split("/")
-    print("\nStarting to check....\n")
 
     #
     # determine the results.
@@ -591,8 +634,13 @@ def IsPathSynced(path):
     else:
         raise FileNotFoundError(path)
     pathParts += dirNames[1:]
-    if exists(as_url("/".join(pathParts))):
-        result = '   🔄'
+    return as_url("/".join(pathParts))
+
+def IsPathSynced(path):
+    if exists(DropboxPathToLocalPath(path)):
+        return '   🔄'
+    else:
+        return ''
 
     #
     # return the result.
