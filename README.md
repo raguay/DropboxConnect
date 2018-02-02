@@ -1,6 +1,6 @@
 ## Dropbox Connect
 
-Plugin for [fman.io](https://fman.io) that allows you to perform actions on your Dropbox files. This plugin also contains the Dropbox file system for interacting with your Dropbox accounts just like your local disk. Currently, only browsing the file system is implemented. The browsing shows the file/directory names, size of the files only, and an 🔄 if it is synced to your file system. I'm working on copy, move, delete, and getting the public link for files in the Dropbox filesystem.
+Plugin for [fman.io](https://fman.io) that allows you to perform actions on your Dropbox files. This plugin also contains the Dropbox file system for interacting with your Dropbox accounts just like your local disk. Currently, only browsing and copying files/directories from the cloud server to the local file system is implemented. The browsing shows the file/directory names, size of the files only, and an 🔄 if it is synced to your file system. I'm working on copy, move, delete, and getting the public link for files in the Dropbox filesystem.
 
 You can install this plugin by pressing `<shift+cmd+p>` to open the command pallet. Then type `install plugin`. Look for the `DropboxConnect` plugin and select it.
 
@@ -15,6 +15,8 @@ Next, log into the [App Console](https://www.dropbox.com/developers/apps) of you
 Dropbox will then have you on the new apps page. Scroll down to 'Generate access token' and select 'Generate'. Copy the alphanumeric token given. In fman, run the `set personal secret` and give it this token. Do the same for the business account if you have one.
 
 Now you can select any file in a Dropbox directry and use the `get Dropbox public link` command or `<shift>+<ctrl>+d` hotkey. The public link will be copied to the clipboard.
+
+You can also use the `go_to_dropbox_file_system` command to browse the cloud server and copy files/directories from the Dropbox cloud to your local file system. More to come!
 
 ### Usage
 
@@ -56,7 +58,7 @@ Now you can select any file in a Dropbox directry and use the `get Dropbox publi
 
 `go_to_dropbox_file_system`
 
-This command will open the current panel in the Dropbox file system. Currently, only browsing the files is implemented. This is still a work in progress.
+This command will open the current panel in the Dropbox file system. Currently, only browsing and copying from the cloud to the local file system is implemented. This is still a work in progress.
 
 #### Files Created and Used
 
@@ -68,3 +70,5 @@ This file contains the directory location and the secrets for the personal and b
 
 - Get a public sharable link for a file or directory from Dropbox.
 - Browse the Dropbox files from the cloud server.
+- Full copying of files/directories from cloud to local file system works.
+
