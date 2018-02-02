@@ -3,7 +3,7 @@
 #
 from fman import DirectoryPaneCommand, DirectoryPaneListener, show_alert, show_prompt, show_status_message, clear_status_message, load_json, save_json, clipboard
 
-from fman.fs import FileSystem, UnsupportedOperation, exists, Column
+from fman.fs import FileSystem, UnsupportedOperation, exists, Column, mkdir
 from fman.url import as_human_readable, as_url, splitscheme
 
 import sys
@@ -509,7 +509,7 @@ class DropBoxFileSystem(FileSystem):
         # No root copying.
         #
         if src == '' or dst == '':
-            return
+            raise UnsupportedOperation()
 
         src_scheme, src_path = splitscheme(src)
         dst_scheme, dst_path = splitscheme(dst)
@@ -520,11 +520,7 @@ class DropBoxFileSystem(FileSystem):
             show_status_message("Copying from Dropbox to Filesystem...")
 
             #
-            # Download the file.
-            #
-
-            #
-            # A simple function to get the isDir status of a file on 
+            # A simple function to get the isDir status of a file on
             # Dropbox.
             #
             def _returnNone():
@@ -537,34 +533,12 @@ class DropBoxFileSystem(FileSystem):
                 #
                 # This will copy a directory. Not supported yet...
                 #
-                show_alert("This is a file copy routine.")
-                raise FileNotFoundError()
+                self.copyDropboxDirToFilesystem(src_path, dst_path)
             else:
                 #
                 # This copies a single file.
                 #
-                ConnectToClient()
-                srcDirNames = src_path.split("/")
-                client = None
-                if srcDirNames[0] == os.path.basename(DBDATA['Business']):
-                    client = BUSCLIENT
-                else:
-                    client = PERCLIENT
-
-                if client is None:
-                    show_alert("Dropbox information isn't configured.")
-                    raise FileNotFoundError(path)
-
-                dbFileLoc = "/" + "/".join(srcDirNames[1:])
-                if dbFileLoc == '/':
-                    show_alert("Can't Copy the whole file system!")
-                    raise FileNotFoundError()
-
-                try:
-                    client.files_download_to_file(dst_path, dbFileLoc)
-                except Exception as e:
-                    print(e)
-                    raise FileNotFoundError()
+                self.copyDropboxFileToFilesystem(src_path, dst_path)
             clear_status_message()
         elif src_scheme == 'file://' and dst_scheme == 'dropbox://':
             #
@@ -578,6 +552,37 @@ class DropBoxFileSystem(FileSystem):
             show_alert("Acrossload: Copy from " + src + " to " + dst)
         else:
             raise UnsupportedOperation()
+
+    def copyDropboxDirToFilesystem(self, src_path, dst_path):
+        mkdir(as_url(dst_path))
+        for fileName in self.iterdir(src_path):
+            self.copy("dropbox://" + src_path + "/" + fileName, as_url(dst_path + "/" + fileName))
+
+    def copyDropboxFileToFilesystem(self, src_path, dst_path):
+        global DBDATA, BUSCLIENT, PERCLIENT
+
+        ConnectToClient()
+        srcDirNames = src_path.split("/")
+        client = None
+        if srcDirNames[0] == os.path.basename(DBDATA['Business']):
+            client = BUSCLIENT
+        else:
+            client = PERCLIENT
+
+        if client is None:
+            show_alert("Dropbox information isn't configured.")
+            raise FileNotFoundError(path)
+
+        dbFileLoc = "/" + "/".join(srcDirNames[1:])
+        if dbFileLoc == '/':
+            show_alert("Can't Copy the whole file system!")
+            raise FileNotFoundError()
+
+        try:
+            client.files_download_to_file(dst_path, dbFileLoc)
+        except Exception as e:
+            print(e)
+            raise FileNotFoundError()
 
     def move(self, src, dst):
         if src == '' or dst == '':
