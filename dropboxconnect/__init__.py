@@ -3,11 +3,13 @@
 #
 from fman import DirectoryPaneCommand, DirectoryPaneListener, show_alert, show_prompt, show_status_message, clear_status_message, load_json, save_json, clipboard
 
-from fman.fs import FileSystem, UnsupportedOperation, exists, Column, mkdir
-from fman.url import as_human_readable, as_url, splitscheme
+from fman.fs import FileSystem, UnsupportedOperation, exists, Column, mkdir, is_dir, move_to_trash
+from fman.url import as_human_readable, as_url, splitscheme, basename, dirname
 
 import sys
 import os
+import math
+from datetime import datetime
 
 sys.path.append(os.path.dirname(os.path.dirname(
     os.path.realpath(__file__))) + "/dropbox-sdk-python")
@@ -21,6 +23,13 @@ import dropbox
 DBDATA = None
 BUSCLIENT = None
 PERCLIENT = None
+
+#
+# Function:    ConnectToClient
+#
+# Description: This function creates the different client
+#              connections to the Dropbox server.
+#
 
 
 def ConnectToClient():
@@ -47,13 +56,27 @@ def LoadDropBoxDataFile():
     global DBDATA
     if DBDATA is None:
         DBDATA = load_json('DropboxConnect.json')
+
+        #
+        # See if valid data was loaded. If not, create
+        # defaults and save to the file.
+        #
         if DBDATA is None:
             DBDATA = dict()
             DBDATA['Personal'] = ''
             DBDATA['Business'] = ''
             DBDATA['PersonalSecret'] = ''
             DBDATA['BusinessSecret'] = ''
+            DBDATA['DefChunkSize'] = 10
             SaveDropBoxDataFile()
+
+    #
+    # Check for older installs that don't have new
+    # parameters defaulted.
+    #
+    if 'DefChunkSize' not in DBDATA:
+        DBDATA['DefChunkSize'] = 10
+        SaveDropBoxDataFile()
 
 #
 # Function:    SaveDropBoxDataFile
@@ -68,7 +91,7 @@ def SaveDropBoxDataFile():
     save_json('DropboxConnect.json', DBDATA)
 
 #
-# Function:    GetDropboxPublicLink
+# class:        GetDropboxPublicLink
 #
 # Description: This class determines if the file selected is
 #              in a Dropbox folder areas and gets the public
@@ -85,6 +108,9 @@ class GetDropboxPublicLink(DirectoryPaneCommand):
     def __call__(self):
         global BUSCLIENT, PERCLIENT, DBDATA
 
+        #
+        # Get the client connections.
+        #
         ConnectToClient()
 
         #
@@ -93,10 +119,7 @@ class GetDropboxPublicLink(DirectoryPaneCommand):
         # know it is in the clipboard.
         #
         show_status_message('Dropbox Link Generating')
-        #
-        # Get the Global Data from it's json file.
-        #
-        LoadDropBoxDataFile()
+
         #
         # Get the file or directory for the link.
         #
@@ -104,81 +127,56 @@ class GetDropboxPublicLink(DirectoryPaneCommand):
         if len(selected_files) >= 1 or (len(selected_files) == 0 and self.get_chosen_files()):
             if len(selected_files) == 0 and self.get_chosen_files():
                 selected_files.append(self.get_chosen_files()[0])
-            fileName = as_human_readable(selected_files[0])
-            #
-            # See if the file is in a Dropbox location.
-            #
-            if path_is_parent(DBDATA['Personal'], fileName):
-                #
-                # It's in the Personal Dropbox location.
-                #
-                if DBDATA['PersonalSecret'] != '':
-                    #
-                    # The secret has been set. Now get the path
-                    # from the top of the Dropbox directory.
-                    #
-                    fileName = "/" + \
-                        os.path.relpath(fileName, DBDATA['Personal'])
-                    try:
-                        #
-                        # Query Dropbox for the public link.
-                        #
-                        link = PERCLIENT.sharing_create_shared_link(fileName)
-                        #
-                        # Copy to the clipboard.
-                        #
-                        clipboard.set_text(link.url)
-                    except:
-                        #
-                        # There was an error connecting to
-                        # Dropbox. Tell the user.
-                        #
-                        show_alert("Error connecting to Dropbox:" +
-                                   sys.exc_info()[0])
+
+            file_scheme, fileName = splitscheme(selected_files[0])
+            dirNames = fileName.split("/")
+            client = None
+            baseName = None
+            dbFileName = ''
+
+            if file_scheme == 'file://':
+                if dirNames[3] == os.path.basename(DBDATA['Business']):
+                    client = BUSCLIENT
+                    baseName = DBDATA['Business']
                 else:
-                    #
-                    # The secret wasn't set. Tell the user.
-                    #
-                    show_alert(
-                        "Please setup the secret for the personal Dropbox account.")
-            elif path_is_parent(DBDATA['Business'], fileName):
-                #
-                # It's the business Dropbox location.
-                #
-                if DBDATA['BusinessSecret'] != '':
-                    #
-                    # The secret has been set. Get the path
-                    # beginning at the top of the Dropbox
-                    # directory.
-                    #
-                    fileName = "/" + \
-                        os.path.relpath(fileName, DBDATA['Business'])
-                    try:
-                        #
-                        # Query Dropbox for the public link.
-                        #
-                        link = BUSCLIENT.sharing_create_shared_link(fileName)
-                        #
-                        # Copy to the clipboard.
-                        #
-                        clipboard.set_text(link.url)
-                    except:
-                        #
-                        # There was a error.
-                        #
-                        show_alert("Error connecting to Dropbox:" +
-                                   sys.exc_info()[0])
+                    client = PERCLIENT
+                    baseName = DBDATA['Personal']
+
+                sliceObj = slice(len(baseName.split('/')), len(dirNames))
+                dbFileName = "/" + "/".join(dirNames[sliceObj])
+            elif file_scheme == 'dropbox://':
+                if dirNames[0] == os.path.basename(DBDATA['Business']):
+                    client = BUSCLIENT
+                    baseName = DBDATA['Business']
                 else:
-                    #
-                    # The secret hasn't been set. Tell the user.
-                    #
-                    show_alert(
-                        "Please setup the secret for the business Dropbox account.")
+                    client = PERCLIENT
+                    baseName = DBDATA['Personal']
+                dbFileName = "/" + "/".join(dirNames[1:])
             else:
+                raise UnsupportedOperation()
+
+            if client is None:
+                show_alert("Dropbox information isn't configured.")
+                raise FileNotFoundError(path)
+
+            try:
                 #
-                # It's not a Dropbox file. Tell the user.
+                # Query Dropbox for the public link.
                 #
-                show_alert("The file isn't in a Dropbox area.")
+                link = client.sharing_create_shared_link(dbFileName)
+                #
+                # Copy to the clipboard.
+                #
+                clipboard.set_text(link.url)
+            except Exception as e:
+                #
+                # There was an error connecting to
+                # Dropbox. Tell the user.
+                #
+                show_alert("Error connecting to Dropbox:" + str(e))
+        else:
+            show_alert("No files selected.")
+
         #
         # Clear out the status bar message.
         #
@@ -249,6 +247,7 @@ class SetBusinessDB(DirectoryPaneCommand):
             DBDATA['Business'] = dirName
             SaveDropBoxDataFile()
         clear_status_message()
+
 
 #
 # Function:    SetPersonalSecret
@@ -358,6 +357,57 @@ def path_is_parent(parent_path, child_path):
 #              directory structure to the current panel. This allows
 #              the user to go to that file system.
 #
+#
+# Function:    SetChunkSize
+#
+# Description: This class allows the user to set the chunk
+#              size for uploading files to the Dropbox server.
+#              The number given is in megabytes. The chunk size
+#              should not be less than 4 megabytes, but not greater
+#              than 140 megabytes.
+#
+
+
+class SetChunkSize(DirectoryPaneCommand):
+
+    def __call__(self):
+        global DBDATA
+        show_status_message('Dropbox Upload Chunk Size')
+        #
+        # Get the current values.
+        #
+        LoadDropBoxDataFile()
+        #
+        # Get the new value from the user.
+        #
+        newSize, result = show_prompt(
+            "Chunk Size [4-140]?")
+        #
+        # Check for proper results.
+        #
+        if not result:
+            DBDATA['DefChunkSize'] = 10
+        else:
+            #
+            # Make sure it's in the proper range.
+            #
+            DBDATA['DefChunkSize'] = int(newSize)
+            if DBDATA['DefChunkSize'] < 4:
+                DBDATA['DefChunkSize'] = 4
+            elif DBDATA['DefChunkSize'] > 140:
+                DBDATA['DefChunkSize'] = 140
+        #
+        # Save the new value.
+        #
+        SaveDropBoxDataFile()
+        clear_status_message()
+
+
+class DropboxUploadError(Exception):
+    message = ""
+
+    def __init__(self, message):
+        self.message = message
 
 
 class GoToDropboxFileSystem(DirectoryPaneCommand):
@@ -420,10 +470,7 @@ class DropBoxFileSystem(FileSystem):
             if len(dirNames[1:]) > 0:
                 joinedPath = "/" + "/".join(dirNames[1:])
 
-            def _getDropboxFiles():
-                return client.files_list_folder(path=joinedPath, recursive=False)
-
-            curDirList = self.cache.query(path, "entries", _getDropboxFiles)
+            curDirList = self.cache.query(path, "entries", lambda: client.files_list_folder(path=joinedPath, recursive=False))
             self.cache.put(path, "Name", dirNames[-1])
             self.cache.put(path, "Size", "")
             self.cache.put(path, "isDir", True)
@@ -477,24 +524,18 @@ class DropBoxFileSystem(FileSystem):
             # the last query information to determine if it is
             # a directory.
             #
-            def _returnFalse():
-                return False
-            isADir = self.cache.query(path, "isDir", _returnFalse)
+            isADir = self.cache.query(path, "isDir", lambda: False)
         return isADir
 
     def size_bytes(self, path):
-        def _returnEmpty():
-            return None
-        result = self.cache.query(path, "Size", _returnEmpty)
+        result = self.cache.query(path, "Size", lambda: None)
         if result is None:
             raise FileNotFoundError(path)
         else:
             return result
 
     def name(self, path):
-        def _returnEmpty():
-            return None
-        result = self.cache.query(path, "Name", _returnEmpty)
+        result = self.cache.query(path, "Name", lambda: None)
         if result is None:
             raise FileNotFoundError(path)
         else:
@@ -502,7 +543,6 @@ class DropBoxFileSystem(FileSystem):
 
     def get_default_columns(self, path):
         return ('core.Name', 'core.Size', 'dropboxconnect.Synced')
-#        return ('core.Name', )
 
     def copy(self, src, dst):
         #
@@ -519,38 +559,61 @@ class DropBoxFileSystem(FileSystem):
             #
             show_status_message("Copying from Dropbox to Filesystem...")
 
-            #
-            # A simple function to get the isDir status of a file on
-            # Dropbox.
-            #
-            def _returnNone():
-                return None
+            try:
+                #
+                # Determine if it is a directory or a file.
+                #
+                if self.cache.query(src_path, "isDir", lambda: None) == True:
+                    #
+                    # This will copy a directory.
+                    #
+                    self.copyDropboxDirToFilesystem(src_path, dst_path)
+                else:
+                    #
+                    # This copies a single file.
+                    #
+                    self.copyDropboxFileToFilesystem(src_path, dst_path)
+            except:
+                #
+                # An error. Tell the user.
+                #
+                show_alert("Unable to Download from Dropbox. Network Error.")
 
             #
-            # Determine if it is a directory or a file.
+            # Clear the status message.
             #
-            if self.cache.query(src_path, "isDir", _returnNone) == True:
-                #
-                # This will copy a directory. Not supported yet...
-                #
-                self.copyDropboxDirToFilesystem(src_path, dst_path)
-            else:
-                #
-                # This copies a single file.
-                #
-                self.copyDropboxFileToFilesystem(src_path, dst_path)
             clear_status_message()
         elif src_scheme == 'file://' and dst_scheme == 'dropbox://':
             #
-            # Upload the file.
+            # Upload the file. Tell the user about it.
             #
-            show_alert("Upload: Copy from " + src + " to " + dst)
-        elif src_scheme == dst_scheme:
+            show_status_message("Upload to Dropbox...")
+
+            try:
+                #
+                # Determine if it is a directory or a file.
+                #
+                if is_dir(src):
+                    #
+                    # This will copy a directory.
+                    #
+                    self.copyFilesystemDirToDropbox(src_path, dst_path)
+                else:
+                    #
+                    # This copies a single file.
+                    #
+                    self.copyFilesystemFileToDropbox(src_path, dst_path)
+            except:
+                show_alert("Couldn't upload to Dropbox. Network error.")
+
             #
-            # Dropbox to Dropbox copy.
+            # Clear out the status message.
             #
-            show_alert("Acrossload: Copy from " + src + " to " + dst)
+            clear_status_message()
         else:
+            #
+            # If you get here, it is a condition that fman should handle.
+            #
             raise UnsupportedOperation()
 
     def copyDropboxDirToFilesystem(self, src_path, dst_path):
@@ -571,54 +634,364 @@ class DropBoxFileSystem(FileSystem):
 
         if client is None:
             show_alert("Dropbox information isn't configured.")
-            raise FileNotFoundError(path)
+            raise DropboxUploadError(path)
 
         dbFileLoc = "/" + "/".join(srcDirNames[1:])
         if dbFileLoc == '/':
             show_alert("Can't Copy the whole file system!")
-            raise FileNotFoundError()
+            raise DropboxUploadError()
 
         try:
             client.files_download_to_file(dst_path, dbFileLoc)
         except Exception as e:
             print(e)
+            raise DropboxUploadError()
+
+    def copyFilesystemDirToDropbox(self, src_path, dst_path):
+        #
+        # Add directory to the cache.
+        #
+        self.cache.put(dst_path, "Name", os.path.basename(dst_path))
+        self.cache.put(dst_path, "Size", None)
+        self.cache.put(dst_path, "isDir", True)
+        self.cache.put(dst_path, "synced", False)
+
+        for fileName in os.listdir(src_path):
+            self.copy(as_url(src_path + "/" + fileName), "dropbox://" + dst_path + "/" + fileName)
+
+    def copyFilesystemFileToDropbox(self, src_path, dst_path):
+        global DBDATA, BUSCLIENT, PERCLIENT
+
+        ConnectToClient()
+
+        dstDirNames = dst_path.split("/")
+        client = None
+        if dstDirNames[0] == os.path.basename(DBDATA['Business']):
+            client = BUSCLIENT
+        else:
+            client = PERCLIENT
+
+        if client is None:
+            show_alert("Dropbox information isn't configured.")
+            raise FileNotFoundError(path)
+
+        dbFileLoc = "/" + "/".join(dstDirNames[1:])
+        file_size = None
+        try:
+            f = open(src_path, 'rb')
+            file_size = os.path.getsize(src_path)
+            CHUNK_SIZE = DBDATA['DefChunkSize'] * 1024 * 1024
+
+            if file_size <= CHUNK_SIZE:
+                client.files_upload(f.read(), dbFileLoc)
+
+            else:
+                upload_session_start_result = client.files_upload_session_start(f.read(CHUNK_SIZE))
+                cursor = dropbox.files.UploadSessionCursor(session_id=upload_session_start_result.session_id, offset=f.tell())
+                commit = dropbox.files.CommitInfo(path=dbFileLoc)
+
+                while f.tell() < file_size:
+                    prevLoc = f.tell()
+                    chunk = f.read(CHUNK_SIZE)
+                    try:
+                        if ((file_size - f.tell()) <= CHUNK_SIZE):
+                            client.files_upload_session_finish(chunk, cursor, commit)
+                        else:
+                            client.files_upload_session_append(chunk,cursor.session_id, cursor.offset)
+                            cursor.offset = f.tell()
+                    except:
+                        #
+                        # Usually a timeout error. Try lowering the chunk
+                        # size. This will lower the likely hood of a
+                        # timeout error.
+                        #
+                        f.seek(prevLoc)
+                        CHUNK_SIZE = CHUNK_SIZE - math.floor(CHUNK_SIZE/4)
+                        if CHUNK_SIZE < 1024:
+                            raise DropboxUploadError("Upload Failed.")
+                        else:
+                            continue
+            #
+            # Add new file to the cache.
+            #
+            self.cache.put(dst_path, "Name", dstDirNames[-1])
+            self.cache.put(dst_path, "Size", file_size)
+            self.cache.put(dst_path, "isDir", False)
+            self.cache.put(dst_path, "synced", False)
+
+            #
+            # Close the file.
+            #
+            f.close()
+        except Exception as e:
+            print(e)
+            if f is not None:
+                f.close()
             raise FileNotFoundError()
 
+    def exists(self, url):
+        return self.cache.query(url, "Name", lambda: None) is not None
+
     def move(self, src, dst):
+        global DBDATA, BUSCLIENT, PERCLIENT
+        #
+        # No root moving.
+        #
         if src == '' or dst == '':
-            return
+            raise UnsupportedOperation()
 
         src_scheme, src_path = splitscheme(src)
         dst_scheme, dst_path = splitscheme(dst)
         if src_scheme == 'dropbox://' and dst_scheme == 'file://':
             #
-            # Download the file and delete it off of Dropbox.
+            # Tell the user what we are doing.
             #
-            show_alert("Download & Delete: Move from " + src + " to " + dst)
+            show_status_message("Moving from Dropbox to Filesystem...")
+
+            try:
+                #
+                # Determine if it is a directory or a file.
+                #
+                if self.cache.query(src_path, "isDir", lambda: None) == True:
+                    #
+                    # This will copy a directory.
+                    #
+                    self.copyDropboxDirToFilesystem(src_path, dst_path)
+                else:
+                    #
+                    # This copies a single file.
+                    #
+                    self.copyDropboxFileToFilesystem(src_path, dst_path)
+                #
+                # Now, delete the file.
+                #
+                self.delete(src_path)
+            except:
+                #
+                # An error. Tell the user.
+                #
+                show_alert("Unable to Download from Dropbox. Network Error.")
+
+            #
+            # Clear the status message.
+            #
+            clear_status_message()
         elif src_scheme == 'file://' and dst_scheme == 'dropbox://':
             #
-            # Upload the file and delete from file system.
+            # Upload the file. Tell the user about it.
             #
-            show_alert("Upload & Delete: Move from " + src + " to " + dst)
-        elif src_scheme == dst_scheme:
+            show_status_message("Upload to Dropbox...")
+
+            try:
+                #
+                # Determine if it is a directory or a file.
+                #
+                if is_dir(src):
+                    #
+                    # This will copy a directory.
+                    #
+                    self.copyFilesystemDirToDropbox(src_path, dst_path)
+                else:
+                    #
+                    # This copies a single file.
+                    #
+                    self.copyFilesystemFileToDropbox(src_path, dst_path)
+                #
+                # Now, delete the source.
+                #
+                move_to_trash(src)
+            except:
+                show_alert("Couldn't upload to Dropbox. Network error.")
+
             #
-            # Dropbox to Dropbox copy and then delete original.
+            # Clear out the status message.
             #
-            show_alert("Acrossload & Delete: Move from " + src + " to " + dst)
+            clear_status_message()
+        elif (src_scheme == dst_scheme) and (src_scheme == 'dropbox://'):
+            #
+            # Make sure we have a Dropbox connection.
+            #
+            ConnectToClient()
+
+            #
+            # Get the right client for the account.
+            #
+            dstDirNames = dst_path.split("/")
+            client = None
+            if dstDirNames[0] == os.path.basename(DBDATA['Business']):
+                client = BUSCLIENT
+            else:
+                client = PERCLIENT
+
+            if client is None:
+                #
+                # Client not created. Not all the information
+                # connecting to Dropbox is setup.
+                #
+                show_alert("Dropbox information isn't configured.")
+                raise FileNotFoundError(path)
+
+            #
+            # This is a rename or move operation within Dropbox.
+            #
+            dstDirNames = dst_path.split("/")
+            srcDirNames = src_path.split("/")
+            if dstDirNames[0] == srcDirNames[0]:
+                #
+                # This is a rename or move within the current Dropbox
+                # file system.
+                #
+                try:
+                    #
+                    # Create the proper location within Dropbox.
+                    #
+                    dstdbFileLoc = "/" + "/".join(dstDirNames[1:])
+                    srcdbFileLoc = "/" + "/".join(srcDirNames[1:])
+
+                    #
+                    # Move the file.
+                    #
+                    client.files_move(srcdbFileLoc, dstdbFileLoc)
+
+                    #
+                    # Fix the cache.
+                    #
+                    newName = os.path.basename(dst_path)
+                    self.cache.put(dst_path, "Name", newName)
+                    self.cache.put(dst_path, "isDir", self.cache.query(src_path, "isDir", lambda: None))
+                    self.cache.put(dst_path, "synced", None)
+                    self.cache.put(dst_path, "Size", self.cache.query(src_path, "Size", lambda: None))
+                    self.cache.put(src_path, "Name", newName)
+                except Exception as e:
+                    #
+                    # There was a network error.
+                    #
+                    print(e)
+                    raise DropboxUploadError("Move Failed.")
+            else:
+                #
+                # This is a move from one Dropbox account to another
+                # Dropbox account. Need to download and re-upload.
+                #
+                raise UnsupportedOperation()
         else:
+            #
+            # If you get here, it is a condition that fman should handle.
+            # This is a move from/to Dropbox to another non-native file
+            # system.
+            #
             raise UnsupportedOperation()
 
-    def delete(self, file_url):
-        show_alert("Delete the file: " + file_url)
+    def delete(self, file_path):
+        global DBDATA, BUSCLIENT, PERCLIENT
+
+        #
+        # Get the client connection.
+        #
+        ConnectToClient()
+
+        #
+        # Get the correct client.
+        #
+        dstDirNames = file_path.split("/")
+        client = None
+        if dstDirNames[0] == os.path.basename(DBDATA['Business']):
+            client = BUSCLIENT
+        else:
+            client = PERCLIENT
+
+        if client is None:
+            show_alert("Dropbox information isn't configured.")
+            raise DropboxUploadError(path)
+
+        #
+        # Create the correct path in Dropbox.
+        #
+        dbFileLoc = "/" + "/".join(dstDirNames[1:])
+        try:
+            #
+            # Delete the file or directory from DropBox.
+            #
+            client.files_delete(dbFileLoc)
+            #
+            # Remove it from the cache.
+            #
+            self.cache.put(file_path, "Name", None)
+        except:
+            #
+            # There was a network error.
+            #
+            raise DropboxUploadError()
 
     def move_to_trash(self, file_url):
-        show_alert("Trash the file: " + file_url)
+        #
+        # There isn't a "trash" in Dropbox. Just delete it.
+        #
+        self.delete(file_url)
 
     def mkdir(self, dir_url):
-        show_alert("Make the directory: " + dir_url)
+        global DBDATA, BUSCLIENT, PERCLIENT
+
+        #
+        # Make sure it doesn't already exist first.
+        #
+        if self.cache.query(dir_url, "isDir", lambda: None) is None:
+            #
+            # Make sure we have a Dropbox connection.
+            #
+            ConnectToClient()
+
+            #
+            # Get the right connection for the Dropbox being used.
+            #
+            dstDirNames = dir_url.split("/")
+            client = None
+            if dstDirNames[0] == os.path.basename(DBDATA['Business']):
+                client = BUSCLIENT
+            else:
+                client = PERCLIENT
+
+            if client is None:
+                show_alert("Dropbox information isn't configured.")
+                raise FileNotFoundError(path)
+
+            #
+            # Create the correct Dropbox location.
+            #
+            dbFileLoc = "/" + "/".join(dstDirNames[1:])
+            try:
+                #
+                # Create the folder.
+                #
+                client.files_create_folder(dbFileLoc)
+
+                #
+                # Update the cache.
+                #
+                self.cache.put(dir_url, "Name", dstDirNames[-1])
+                self.cache.put(dir_url, "isDir", True)
+                self.cache.put(dir_url, "Size", '')
+            except:
+                raise FileNotFoundError(dir_url)
+        else:
+            raise FileExistsError(dir_url)
 
     def touch(self, file_url):
-        show_alert("Touch the file: " + file_url)
+        print("Touch the file: " + file_url)
+
+    def modified_datetime(self, path):
+        return self.cache.query(path, "ModifiedDT", lambda: datetime.now())
+
+#
+# Function:    DropboxPathToLocalPath
+#
+# Description: This function finds the local path for a
+#              synced Dropbox location.
+#
+# Inputs:
+#              path     The path in the Dropbox file system.
+#
+
 
 def DropboxPathToLocalPath(path):
     #
@@ -636,10 +1009,19 @@ def DropboxPathToLocalPath(path):
         pathParts.append(DBDATA['Business'])
     elif dirNames[0] == os.path.basename(DBDATA['Personal']):
         pathParts.append(DBDATA['Personal'])
-    else:
-        raise FileNotFoundError(path)
     pathParts += dirNames[1:]
     return as_url("/".join(pathParts))
+
+#
+# Function:    IsPathSynced
+#
+# Description: This function determines if the Dropbox location
+#              is currently synced to the local file system.
+#
+# Inputs:
+#              path     The path in the Dropbox file system.
+#
+
 
 def IsPathSynced(path):
     if exists(DropboxPathToLocalPath(path)):
@@ -647,10 +1029,13 @@ def IsPathSynced(path):
     else:
         return ''
 
-    #
-    # return the result.
-    #
-    return result
+#
+# Class:        Synced
+#
+# Description:  This class extends the Column class in fman for
+#               creating the Synced custom column in fman.
+#
+
 
 class Synced(Column):
     def get_str(self, url):
