@@ -11,8 +11,8 @@ import os
 import math
 from datetime import datetime
 
-sys.path.append(os.path.dirname(os.path.dirname(
-    os.path.realpath(__file__))) + "/dropbox-sdk-python")
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(
+    os.path.realpath(__file__))), "dropbox-sdk-python"))
 
 import dropbox
 
