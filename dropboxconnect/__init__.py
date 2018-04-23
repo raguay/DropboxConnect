@@ -11,6 +11,10 @@ import os
 import math
 from datetime import datetime
 
+#
+# In order to load the Dropbox library, we need to put the
+# plugin's path into the os' sys path.
+#
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(
     os.path.realpath(__file__))), "dropbox-sdk-python"))
 
@@ -23,6 +27,7 @@ import dropbox
 DBDATA = None
 BUSCLIENT = None
 PERCLIENT = None
+OSSEP = os.sep
 
 #
 # Function:    ConnectToClient
@@ -106,7 +111,7 @@ class GetDropboxPublicLink(DirectoryPaneCommand):
     #
 
     def __call__(self):
-        global BUSCLIENT, PERCLIENT, DBDATA
+        global BUSCLIENT, PERCLIENT, DBDATA, OSSEP
 
         #
         # Get the client connections.
@@ -129,11 +134,15 @@ class GetDropboxPublicLink(DirectoryPaneCommand):
                 selected_files.append(self.get_chosen_files()[0])
 
             file_scheme, fileName = splitscheme(selected_files[0])
-            dirNames = fileName.split("/")
+            dirNames = fileName.split(OSSEP)
             client = None
             baseName = None
             dbFileName = ''
 
+            #
+            # Determine the file scheme in use. If it is the file system,
+            # make sure it's in the Dropbox folders.
+            #
             if file_scheme == 'file://':
                 if dirNames[3] == os.path.basename(DBDATA['Business']):
                     client = BUSCLIENT
@@ -142,8 +151,8 @@ class GetDropboxPublicLink(DirectoryPaneCommand):
                     client = PERCLIENT
                     baseName = DBDATA['Personal']
 
-                sliceObj = slice(len(baseName.split('/')), len(dirNames))
-                dbFileName = "/" + "/".join(dirNames[sliceObj])
+                sliceObj = slice(len(baseName.split(OSSEP)), len(dirNames))
+                dbFileName = OSSEP + OSSEP.join(dirNames[sliceObj])
             elif file_scheme == 'dropbox://':
                 if dirNames[0] == os.path.basename(DBDATA['Business']):
                     client = BUSCLIENT
@@ -151,10 +160,13 @@ class GetDropboxPublicLink(DirectoryPaneCommand):
                 else:
                     client = PERCLIENT
                     baseName = DBDATA['Personal']
-                dbFileName = "/" + "/".join(dirNames[1:])
+                dbFileName = OSSEP + OSSEP.join(dirNames[1:])
             else:
                 raise UnsupportedOperation()
 
+            #
+            # Check for the client set properly.
+            #
             if client is None:
                 show_alert("Dropbox information isn't configured.")
                 raise FileNotFoundError(path)
@@ -326,6 +338,9 @@ class GoToBusinessDB(DirectoryPaneCommand):
             self.pane.set_path(as_url(DBDATA['Business']))
         else:
             show_alert("Business directory isn't set.")
+
+
+
 #
 # The following function was taken from
 # [StackOverflow](https://stackoverflow.com/questions/3812849/how-to-check-whether-a-directory-is-a-sub-directory-of-another-directory)
@@ -350,13 +365,6 @@ def path_is_parent(parent_path, child_path):
 # The following code implements the Dropbox file system for fman.
 #
 
-#
-# Function:    GoToDropboxFileSystem
-#
-# Description: This directory command will open the top of the Dropbox
-#              directory structure to the current panel. This allows
-#              the user to go to that file system.
-#
 #
 # Function:    SetChunkSize
 #
@@ -403,11 +411,27 @@ class SetChunkSize(DirectoryPaneCommand):
         clear_status_message()
 
 
+#
+# Class:         DropboxUploadError
+#
+# Description:   This class implements the Dropbox upload error condition.
+#                It's an extension of the base Exception class.
+#
+
 class DropboxUploadError(Exception):
     message = ""
 
     def __init__(self, message):
         self.message = message
+
+
+#
+# Class:       GoToDropboxFileSystem
+#
+# Description: This directory command will open the top of the Dropbox
+#              directory structure to the current panel. This allows
+#              the user to go to that file system.
+#
 
 
 class GoToDropboxFileSystem(DirectoryPaneCommand):
@@ -416,15 +440,34 @@ class GoToDropboxFileSystem(DirectoryPaneCommand):
         self.pane.set_path('dropbox://')
 
 
+#
+# Class:        DropBoxFileSystem
+#
+# Description:  This class implements the Dropbox file system. It is
+#               a subclass of the FileSystem class.
+#
+
+
 class DropBoxFileSystem(FileSystem):
 
     scheme = 'dropbox://'
 
+    #
+    # Function:      iterdir
+    #
+    # Description:   This function is the main working function for the
+    #                Dropbox file system. Here is where Dropbox is queried
+    #                for information about the files in Dropbox. The
+    #                information is then cached and used in all the other
+    #                functions.
+    #
+    #
+    #
     def iterdir(self, path):
         #
         # Load in the Dropbox data files if not already loaded.
         #
-        global BUSCLIENT, PERCLIENT, DBDATA
+        global BUSCLIENT, PERCLIENT, DBDATA, OSSEP
 
         #
         # Process dependently on the path given.
@@ -451,7 +494,7 @@ class DropBoxFileSystem(FileSystem):
             # Get the directory contents from Dropbox.
             #
             show_status_message("Loading Dropbox information...")
-            dirNames = path.split('/')
+            dirNames = path.split(OSSEP)
             ConnectToClient()
             client = None
             if dirNames[0] == os.path.basename(DBDATA['Business']):
@@ -468,7 +511,7 @@ class DropBoxFileSystem(FileSystem):
             #
             joinedPath = ''
             if len(dirNames[1:]) > 0:
-                joinedPath = "/" + "/".join(dirNames[1:])
+                joinedPath = OSSEP + OSSEP.join(dirNames[1:])
 
             curDirList = self.cache.query(path, "entries", lambda: client.files_list_folder(path=joinedPath, recursive=False))
             self.cache.put(path, "Name", dirNames[-1])
@@ -481,10 +524,10 @@ class DropBoxFileSystem(FileSystem):
                 if not isinstance(file, dropbox.files.FolderMetadata):
                     size = file.size
                     isDir = False
-                self.cache.put(path + "/" + file.name, "Name", file.name)
-                self.cache.put(path + "/" + file.name, "Size", size)
-                self.cache.put(path + "/" + file.name, "isDir", isDir)
-                self.cache.put(path + "/" + file.name, "synced", IsPathSynced(as_url(path + "/" + file.name)))
+                self.cache.put(path + OSSEP + file.name, "Name", file.name)
+                self.cache.put(path + OSSEP + file.name, "Size", size)
+                self.cache.put(path + OSSEP + file.name, "isDir", isDir)
+                self.cache.put(path + OSSEP + file.name, "synced", IsPathSynced(as_url(path + OSSEP + file.name)))
                 yield file.name
             clear_status_message()
 
@@ -617,15 +660,16 @@ class DropBoxFileSystem(FileSystem):
             raise UnsupportedOperation()
 
     def copyDropboxDirToFilesystem(self, src_path, dst_path):
+        global OSSEP
         mkdir(as_url(dst_path))
         for fileName in self.iterdir(src_path):
-            self.copy("dropbox://" + src_path + "/" + fileName, as_url(dst_path + "/" + fileName))
+            self.copy("dropbox://" + src_path + OSSEP + fileName, as_url(dst_path + OSSEP + fileName))
 
     def copyDropboxFileToFilesystem(self, src_path, dst_path):
-        global DBDATA, BUSCLIENT, PERCLIENT
+        global DBDATA, BUSCLIENT, PERCLIENT, OSSEP
 
         ConnectToClient()
-        srcDirNames = src_path.split("/")
+        srcDirNames = src_path.split(OSSEP)
         client = None
         if srcDirNames[0] == os.path.basename(DBDATA['Business']):
             client = BUSCLIENT
@@ -636,8 +680,8 @@ class DropBoxFileSystem(FileSystem):
             show_alert("Dropbox information isn't configured.")
             raise DropboxUploadError(path)
 
-        dbFileLoc = "/" + "/".join(srcDirNames[1:])
-        if dbFileLoc == '/':
+        dbFileLoc = OSSEP + OSSEP.join(srcDirNames[1:])
+        if dbFileLoc == OSSEP:
             show_alert("Can't Copy the whole file system!")
             raise DropboxUploadError()
 
@@ -648,6 +692,7 @@ class DropBoxFileSystem(FileSystem):
             raise DropboxUploadError()
 
     def copyFilesystemDirToDropbox(self, src_path, dst_path):
+        global OSSEP
         #
         # Add directory to the cache.
         #
@@ -657,14 +702,14 @@ class DropBoxFileSystem(FileSystem):
         self.cache.put(dst_path, "synced", False)
 
         for fileName in os.listdir(src_path):
-            self.copy(as_url(src_path + "/" + fileName), "dropbox://" + dst_path + "/" + fileName)
+            self.copy(as_url(src_path + OSSEP + fileName), "dropbox://" + dst_path + OSSEP + fileName)
 
     def copyFilesystemFileToDropbox(self, src_path, dst_path):
-        global DBDATA, BUSCLIENT, PERCLIENT
+        global DBDATA, BUSCLIENT, PERCLIENT, OSSEP
 
         ConnectToClient()
 
-        dstDirNames = dst_path.split("/")
+        dstDirNames = dst_path.split(OSSEP)
         client = None
         if dstDirNames[0] == os.path.basename(DBDATA['Business']):
             client = BUSCLIENT
@@ -675,7 +720,7 @@ class DropBoxFileSystem(FileSystem):
             show_alert("Dropbox information isn't configured.")
             raise FileNotFoundError(path)
 
-        dbFileLoc = "/" + "/".join(dstDirNames[1:])
+        dbFileLoc = OSSEP + OSSEP.join(dstDirNames[1:])
         file_size = None
         try:
             f = open(src_path, 'rb')
@@ -733,7 +778,7 @@ class DropBoxFileSystem(FileSystem):
         return self.cache.query(url, "Name", lambda: None) is not None
 
     def move(self, src, dst):
-        global DBDATA, BUSCLIENT, PERCLIENT
+        global DBDATA, BUSCLIENT, PERCLIENT, OSSEP
         #
         # No root moving.
         #
@@ -816,7 +861,7 @@ class DropBoxFileSystem(FileSystem):
             #
             # Get the right client for the account.
             #
-            dstDirNames = dst_path.split("/")
+            dstDirNames = dst_path.split(OSSEP)
             client = None
             if dstDirNames[0] == os.path.basename(DBDATA['Business']):
                 client = BUSCLIENT
@@ -834,8 +879,8 @@ class DropBoxFileSystem(FileSystem):
             #
             # This is a rename or move operation within Dropbox.
             #
-            dstDirNames = dst_path.split("/")
-            srcDirNames = src_path.split("/")
+            dstDirNames = dst_path.split(OSSEP)
+            srcDirNames = src_path.split(OSSEP)
             if dstDirNames[0] == srcDirNames[0]:
                 #
                 # This is a rename or move within the current Dropbox
@@ -845,8 +890,8 @@ class DropBoxFileSystem(FileSystem):
                     #
                     # Create the proper location within Dropbox.
                     #
-                    dstdbFileLoc = "/" + "/".join(dstDirNames[1:])
-                    srcdbFileLoc = "/" + "/".join(srcDirNames[1:])
+                    dstdbFileLoc = OSSEP + OSSEP.join(dstDirNames[1:])
+                    srcdbFileLoc = OSSEP + OSSEP.join(srcDirNames[1:])
 
                     #
                     # Move the file.
@@ -883,7 +928,7 @@ class DropBoxFileSystem(FileSystem):
             raise UnsupportedOperation()
 
     def delete(self, file_path):
-        global DBDATA, BUSCLIENT, PERCLIENT
+        global DBDATA, BUSCLIENT, PERCLIENT, OSSEP
 
         #
         # Get the client connection.
@@ -893,7 +938,7 @@ class DropBoxFileSystem(FileSystem):
         #
         # Get the correct client.
         #
-        dstDirNames = file_path.split("/")
+        dstDirNames = file_path.split(OSSEP)
         client = None
         if dstDirNames[0] == os.path.basename(DBDATA['Business']):
             client = BUSCLIENT
@@ -907,7 +952,7 @@ class DropBoxFileSystem(FileSystem):
         #
         # Create the correct path in Dropbox.
         #
-        dbFileLoc = "/" + "/".join(dstDirNames[1:])
+        dbFileLoc = OSSEP + OSSEP.join(dstDirNames[1:])
         try:
             #
             # Delete the file or directory from DropBox.
@@ -930,7 +975,7 @@ class DropBoxFileSystem(FileSystem):
         self.delete(file_url)
 
     def mkdir(self, dir_url):
-        global DBDATA, BUSCLIENT, PERCLIENT
+        global DBDATA, BUSCLIENT, PERCLIENT, OSSEP
 
         #
         # Make sure it doesn't already exist first.
@@ -944,7 +989,7 @@ class DropBoxFileSystem(FileSystem):
             #
             # Get the right connection for the Dropbox being used.
             #
-            dstDirNames = dir_url.split("/")
+            dstDirNames = dir_url.split(OSSEP)
             client = None
             if dstDirNames[0] == os.path.basename(DBDATA['Business']):
                 client = BUSCLIENT
@@ -958,7 +1003,7 @@ class DropBoxFileSystem(FileSystem):
             #
             # Create the correct Dropbox location.
             #
-            dbFileLoc = "/" + "/".join(dstDirNames[1:])
+            dbFileLoc = OSSEP + OSSEP.join(dstDirNames[1:])
             try:
                 #
                 # Create the folder.
@@ -997,9 +1042,9 @@ def DropboxPathToLocalPath(path):
     #
     # Get the global data and set the default.
     #
-    global DBDATA
+    global DBDATA, OSSEP
     scheme, dirNames = splitscheme(path)
-    dirNames = dirNames.split("/")
+    dirNames = dirNames.split(OSSEP)
 
     #
     # determine the results.
@@ -1010,7 +1055,7 @@ def DropboxPathToLocalPath(path):
     elif dirNames[0] == os.path.basename(DBDATA['Personal']):
         pathParts.append(DBDATA['Personal'])
     pathParts += dirNames[1:]
-    return as_url("/".join(pathParts))
+    return as_url(OSSEP.join(pathParts))
 
 #
 # Function:    IsPathSynced
