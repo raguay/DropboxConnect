@@ -776,7 +776,10 @@ class DropBoxFileSystem(FileSystem):
             raise FileNotFoundError()
 
     def exists(self, url):
-        return self.cache.query(url, "Name", lambda: None) is not None
+        if url == '':
+            return True
+        else:
+            return self.cache.query(url, "Name", lambda: None) is not None
 
     def move(self, src, dst):
         global DBDATA, BUSCLIENT, PERCLIENT, OSSEP
