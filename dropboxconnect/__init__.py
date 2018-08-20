@@ -3,8 +3,9 @@
 #
 from fman import DirectoryPaneCommand, DirectoryPaneListener, show_alert, show_prompt, show_status_message, clear_status_message, load_json, save_json, clipboard
 
-from fman.fs import FileSystem, UnsupportedOperation, exists, Column, mkdir, is_dir, move_to_trash
+from fman.fs import FileSystem, exists, Column, mkdir, is_dir, move_to_trash
 from fman.url import as_human_readable, as_url, splitscheme, basename, dirname
+from io import UnsupportedOperation
 
 import sys
 import os
