@@ -6,11 +6,61 @@
 try:
     from . import stone_validators as bv
     from . import stone_base as bb
-except (SystemError, ValueError):
+except (ImportError, SystemError, ValueError):
     # Catch errors raised when importing a relative module when not in a package.
     # This makes testing this file directly (outside of a package) easier.
     import stone_validators as bv
     import stone_base as bb
+
+class CameraUploadsPolicyState(bb.Union):
+    """
+    This class acts as a tagged union. Only one of the ``is_*`` methods will
+    return true. To get the associated value of a tag (if one exists), use the
+    corresponding ``get_*`` method.
+
+    :ivar disabled: Background camera uploads are disabled.
+    :ivar enabled: Background camera uploads are allowed.
+    """
+
+    _catch_all = 'other'
+    # Attribute is overwritten below the class definition
+    disabled = None
+    # Attribute is overwritten below the class definition
+    enabled = None
+    # Attribute is overwritten below the class definition
+    other = None
+
+    def is_disabled(self):
+        """
+        Check if the union tag is ``disabled``.
+
+        :rtype: bool
+        """
+        return self._tag == 'disabled'
+
+    def is_enabled(self):
+        """
+        Check if the union tag is ``enabled``.
+
+        :rtype: bool
+        """
+        return self._tag == 'enabled'
+
+    def is_other(self):
+        """
+        Check if the union tag is ``other``.
+
+        :rtype: bool
+        """
+        return self._tag == 'other'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(CameraUploadsPolicyState, self)._process_custom_annotations(annotation_type, processor)
+
+    def __repr__(self):
+        return 'CameraUploadsPolicyState(%r, %r)' % (self._tag, self._value)
+
+CameraUploadsPolicyState_validator = bv.Union(CameraUploadsPolicyState)
 
 class EmmState(bb.Union):
     """
@@ -65,6 +115,9 @@ class EmmState(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(EmmState, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'EmmState(%r, %r)' % (self._tag, self._value)
 
@@ -101,6 +154,9 @@ class GroupCreation(bb.Union):
         :rtype: bool
         """
         return self._tag == 'admins_only'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupCreation, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'GroupCreation(%r, %r)' % (self._tag, self._value)
@@ -149,6 +205,9 @@ class OfficeAddInPolicy(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(OfficeAddInPolicy, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'OfficeAddInPolicy(%r, %r)' % (self._tag, self._value)
 
@@ -196,6 +255,9 @@ class PaperDeploymentPolicy(bb.Union):
         :rtype: bool
         """
         return self._tag == 'other'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(PaperDeploymentPolicy, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'PaperDeploymentPolicy(%r, %r)' % (self._tag, self._value)
@@ -254,6 +316,9 @@ class PaperEnabledPolicy(bb.Union):
         :rtype: bool
         """
         return self._tag == 'other'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(PaperEnabledPolicy, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'PaperEnabledPolicy(%r, %r)' % (self._tag, self._value)
@@ -316,6 +381,9 @@ class PasswordStrengthPolicy(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(PasswordStrengthPolicy, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'PasswordStrengthPolicy(%r, %r)' % (self._tag, self._value)
 
@@ -363,6 +431,9 @@ class RolloutMethod(bb.Union):
         :rtype: bool
         """
         return self._tag == 'add_member_to_exceptions'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(RolloutMethod, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'RolloutMethod(%r, %r)' % (self._tag, self._value)
@@ -415,6 +486,9 @@ class SharedFolderJoinPolicy(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(SharedFolderJoinPolicy, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'SharedFolderJoinPolicy(%r, %r)' % (self._tag, self._value)
 
@@ -464,6 +538,9 @@ class SharedFolderMemberPolicy(bb.Union):
         :rtype: bool
         """
         return self._tag == 'other'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(SharedFolderMemberPolicy, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'SharedFolderMemberPolicy(%r, %r)' % (self._tag, self._value)
@@ -531,10 +608,164 @@ class SharedLinkCreatePolicy(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(SharedLinkCreatePolicy, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'SharedLinkCreatePolicy(%r, %r)' % (self._tag, self._value)
 
 SharedLinkCreatePolicy_validator = bv.Union(SharedLinkCreatePolicy)
+
+class ShowcaseDownloadPolicy(bb.Union):
+    """
+    This class acts as a tagged union. Only one of the ``is_*`` methods will
+    return true. To get the associated value of a tag (if one exists), use the
+    corresponding ``get_*`` method.
+
+    :ivar disabled: Do not allow files to be downloaded from Showcases.
+    :ivar enabled: Allow files to be downloaded from Showcases.
+    """
+
+    _catch_all = 'other'
+    # Attribute is overwritten below the class definition
+    disabled = None
+    # Attribute is overwritten below the class definition
+    enabled = None
+    # Attribute is overwritten below the class definition
+    other = None
+
+    def is_disabled(self):
+        """
+        Check if the union tag is ``disabled``.
+
+        :rtype: bool
+        """
+        return self._tag == 'disabled'
+
+    def is_enabled(self):
+        """
+        Check if the union tag is ``enabled``.
+
+        :rtype: bool
+        """
+        return self._tag == 'enabled'
+
+    def is_other(self):
+        """
+        Check if the union tag is ``other``.
+
+        :rtype: bool
+        """
+        return self._tag == 'other'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ShowcaseDownloadPolicy, self)._process_custom_annotations(annotation_type, processor)
+
+    def __repr__(self):
+        return 'ShowcaseDownloadPolicy(%r, %r)' % (self._tag, self._value)
+
+ShowcaseDownloadPolicy_validator = bv.Union(ShowcaseDownloadPolicy)
+
+class ShowcaseEnabledPolicy(bb.Union):
+    """
+    This class acts as a tagged union. Only one of the ``is_*`` methods will
+    return true. To get the associated value of a tag (if one exists), use the
+    corresponding ``get_*`` method.
+
+    :ivar disabled: Showcase is disabled.
+    :ivar enabled: Showcase is enabled.
+    """
+
+    _catch_all = 'other'
+    # Attribute is overwritten below the class definition
+    disabled = None
+    # Attribute is overwritten below the class definition
+    enabled = None
+    # Attribute is overwritten below the class definition
+    other = None
+
+    def is_disabled(self):
+        """
+        Check if the union tag is ``disabled``.
+
+        :rtype: bool
+        """
+        return self._tag == 'disabled'
+
+    def is_enabled(self):
+        """
+        Check if the union tag is ``enabled``.
+
+        :rtype: bool
+        """
+        return self._tag == 'enabled'
+
+    def is_other(self):
+        """
+        Check if the union tag is ``other``.
+
+        :rtype: bool
+        """
+        return self._tag == 'other'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ShowcaseEnabledPolicy, self)._process_custom_annotations(annotation_type, processor)
+
+    def __repr__(self):
+        return 'ShowcaseEnabledPolicy(%r, %r)' % (self._tag, self._value)
+
+ShowcaseEnabledPolicy_validator = bv.Union(ShowcaseEnabledPolicy)
+
+class ShowcaseExternalSharingPolicy(bb.Union):
+    """
+    This class acts as a tagged union. Only one of the ``is_*`` methods will
+    return true. To get the associated value of a tag (if one exists), use the
+    corresponding ``get_*`` method.
+
+    :ivar disabled: Do not allow showcases to be shared with people not on the
+        team.
+    :ivar enabled: Allow showcases to be shared with people not on the team.
+    """
+
+    _catch_all = 'other'
+    # Attribute is overwritten below the class definition
+    disabled = None
+    # Attribute is overwritten below the class definition
+    enabled = None
+    # Attribute is overwritten below the class definition
+    other = None
+
+    def is_disabled(self):
+        """
+        Check if the union tag is ``disabled``.
+
+        :rtype: bool
+        """
+        return self._tag == 'disabled'
+
+    def is_enabled(self):
+        """
+        Check if the union tag is ``enabled``.
+
+        :rtype: bool
+        """
+        return self._tag == 'enabled'
+
+    def is_other(self):
+        """
+        Check if the union tag is ``other``.
+
+        :rtype: bool
+        """
+        return self._tag == 'other'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ShowcaseExternalSharingPolicy, self)._process_custom_annotations(annotation_type, processor)
+
+    def __repr__(self):
+        return 'ShowcaseExternalSharingPolicy(%r, %r)' % (self._tag, self._value)
+
+ShowcaseExternalSharingPolicy_validator = bv.Union(ShowcaseExternalSharingPolicy)
 
 class SmartSyncPolicy(bb.Union):
     """
@@ -578,6 +809,9 @@ class SmartSyncPolicy(bb.Union):
         :rtype: bool
         """
         return self._tag == 'other'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(SmartSyncPolicy, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'SmartSyncPolicy(%r, %r)' % (self._tag, self._value)
@@ -640,12 +874,15 @@ class SsoPolicy(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(SsoPolicy, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'SsoPolicy(%r, %r)' % (self._tag, self._value)
 
 SsoPolicy_validator = bv.Union(SsoPolicy)
 
-class TeamMemberPolicies(object):
+class TeamMemberPolicies(bb.Struct):
     """
     Policies governing team members.
 
@@ -762,6 +999,9 @@ class TeamMemberPolicies(object):
         self._office_addin_value = None
         self._office_addin_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamMemberPolicies, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TeamMemberPolicies(sharing={!r}, emm_state={!r}, office_addin={!r})'.format(
             self._sharing_value,
@@ -771,7 +1011,7 @@ class TeamMemberPolicies(object):
 
 TeamMemberPolicies_validator = bv.Struct(TeamMemberPolicies)
 
-class TeamSharingPolicies(object):
+class TeamSharingPolicies(bb.Struct):
     """
     Policies governing sharing within and outside of the team.
 
@@ -879,6 +1119,9 @@ class TeamSharingPolicies(object):
         self._shared_link_create_policy_value = None
         self._shared_link_create_policy_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamSharingPolicies, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TeamSharingPolicies(shared_folder_member_policy={!r}, shared_folder_join_policy={!r}, shared_link_create_policy={!r})'.format(
             self._shared_folder_member_policy_value,
@@ -930,10 +1173,26 @@ class TwoStepVerificationPolicy(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TwoStepVerificationPolicy, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TwoStepVerificationPolicy(%r, %r)' % (self._tag, self._value)
 
 TwoStepVerificationPolicy_validator = bv.Union(TwoStepVerificationPolicy)
+
+CameraUploadsPolicyState._disabled_validator = bv.Void()
+CameraUploadsPolicyState._enabled_validator = bv.Void()
+CameraUploadsPolicyState._other_validator = bv.Void()
+CameraUploadsPolicyState._tagmap = {
+    'disabled': CameraUploadsPolicyState._disabled_validator,
+    'enabled': CameraUploadsPolicyState._enabled_validator,
+    'other': CameraUploadsPolicyState._other_validator,
+}
+
+CameraUploadsPolicyState.disabled = CameraUploadsPolicyState('disabled')
+CameraUploadsPolicyState.enabled = CameraUploadsPolicyState('enabled')
+CameraUploadsPolicyState.other = CameraUploadsPolicyState('other')
 
 EmmState._disabled_validator = bv.Void()
 EmmState._optional_validator = bv.Void()
@@ -1073,6 +1332,45 @@ SharedLinkCreatePolicy.default_public = SharedLinkCreatePolicy('default_public')
 SharedLinkCreatePolicy.default_team_only = SharedLinkCreatePolicy('default_team_only')
 SharedLinkCreatePolicy.team_only = SharedLinkCreatePolicy('team_only')
 SharedLinkCreatePolicy.other = SharedLinkCreatePolicy('other')
+
+ShowcaseDownloadPolicy._disabled_validator = bv.Void()
+ShowcaseDownloadPolicy._enabled_validator = bv.Void()
+ShowcaseDownloadPolicy._other_validator = bv.Void()
+ShowcaseDownloadPolicy._tagmap = {
+    'disabled': ShowcaseDownloadPolicy._disabled_validator,
+    'enabled': ShowcaseDownloadPolicy._enabled_validator,
+    'other': ShowcaseDownloadPolicy._other_validator,
+}
+
+ShowcaseDownloadPolicy.disabled = ShowcaseDownloadPolicy('disabled')
+ShowcaseDownloadPolicy.enabled = ShowcaseDownloadPolicy('enabled')
+ShowcaseDownloadPolicy.other = ShowcaseDownloadPolicy('other')
+
+ShowcaseEnabledPolicy._disabled_validator = bv.Void()
+ShowcaseEnabledPolicy._enabled_validator = bv.Void()
+ShowcaseEnabledPolicy._other_validator = bv.Void()
+ShowcaseEnabledPolicy._tagmap = {
+    'disabled': ShowcaseEnabledPolicy._disabled_validator,
+    'enabled': ShowcaseEnabledPolicy._enabled_validator,
+    'other': ShowcaseEnabledPolicy._other_validator,
+}
+
+ShowcaseEnabledPolicy.disabled = ShowcaseEnabledPolicy('disabled')
+ShowcaseEnabledPolicy.enabled = ShowcaseEnabledPolicy('enabled')
+ShowcaseEnabledPolicy.other = ShowcaseEnabledPolicy('other')
+
+ShowcaseExternalSharingPolicy._disabled_validator = bv.Void()
+ShowcaseExternalSharingPolicy._enabled_validator = bv.Void()
+ShowcaseExternalSharingPolicy._other_validator = bv.Void()
+ShowcaseExternalSharingPolicy._tagmap = {
+    'disabled': ShowcaseExternalSharingPolicy._disabled_validator,
+    'enabled': ShowcaseExternalSharingPolicy._enabled_validator,
+    'other': ShowcaseExternalSharingPolicy._other_validator,
+}
+
+ShowcaseExternalSharingPolicy.disabled = ShowcaseExternalSharingPolicy('disabled')
+ShowcaseExternalSharingPolicy.enabled = ShowcaseExternalSharingPolicy('enabled')
+ShowcaseExternalSharingPolicy.other = ShowcaseExternalSharingPolicy('other')
 
 SmartSyncPolicy._local_validator = bv.Void()
 SmartSyncPolicy._on_demand_validator = bv.Void()

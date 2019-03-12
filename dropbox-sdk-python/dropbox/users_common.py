@@ -10,7 +10,7 @@ This namespace contains common data types used within the users namespace.
 try:
     from . import stone_validators as bv
     from . import stone_base as bb
-except (SystemError, ValueError):
+except (ImportError, SystemError, ValueError):
     # Catch errors raised when importing a relative module when not in a package.
     # This makes testing this file directly (outside of a package) easier.
     import stone_validators as bv
@@ -60,6 +60,9 @@ class AccountType(bb.Union):
         :rtype: bool
         """
         return self._tag == 'business'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(AccountType, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'AccountType(%r, %r)' % (self._tag, self._value)

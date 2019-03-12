@@ -6,7 +6,7 @@
 try:
     from . import stone_validators as bv
     from . import stone_base as bb
-except (SystemError, ValueError):
+except (ImportError, SystemError, ValueError):
     # Catch errors raised when importing a relative module when not in a package.
     # This makes testing this file directly (outside of a package) easier.
     import stone_validators as bv
@@ -14,24 +14,26 @@ except (SystemError, ValueError):
 
 try:
     from . import (
-        async,
+        async_,
         common,
         file_properties,
+        files,
         team_common,
         team_policies,
         users,
         users_common,
     )
-except (SystemError, ValueError):
-    import async
+except (ImportError, SystemError, ValueError):
+    import async_
     import common
     import file_properties
+    import files
     import team_common
     import team_policies
     import users
     import users_common
 
-class DeviceSession(object):
+class DeviceSession(bb.Struct):
     """
     :ivar session_id: The session id.
     :ivar ip_address: The IP address of the last activity from this session.
@@ -210,6 +212,9 @@ class DeviceSession(object):
         self._updated_value = None
         self._updated_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(DeviceSession, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'DeviceSession(session_id={!r}, ip_address={!r}, country={!r}, created={!r}, updated={!r})'.format(
             self._session_id_value,
@@ -371,6 +376,9 @@ class ActiveWebSession(DeviceSession):
         self._expires_value = None
         self._expires_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ActiveWebSession, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ActiveWebSession(session_id={!r}, user_agent={!r}, os={!r}, browser={!r}, ip_address={!r}, country={!r}, created={!r}, updated={!r}, expires={!r})'.format(
             self._session_id_value,
@@ -445,12 +453,15 @@ class AdminTier(bb.Union):
         """
         return self._tag == 'member_only'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(AdminTier, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'AdminTier(%r, %r)' % (self._tag, self._value)
 
 AdminTier_validator = bv.Union(AdminTier)
 
-class ApiApp(object):
+class ApiApp(bb.Struct):
     """
     Information on linked third party applications.
 
@@ -658,6 +669,9 @@ class ApiApp(object):
         self._is_app_folder_value = None
         self._is_app_folder_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ApiApp, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ApiApp(app_id={!r}, app_name={!r}, is_app_folder={!r}, publisher={!r}, publisher_url={!r}, linked={!r})'.format(
             self._app_id_value,
@@ -670,7 +684,7 @@ class ApiApp(object):
 
 ApiApp_validator = bv.Struct(ApiApp)
 
-class BaseDfbReport(object):
+class BaseDfbReport(bb.Struct):
     """
     Base report structure.
 
@@ -713,6 +727,9 @@ class BaseDfbReport(object):
     def start_date(self):
         self._start_date_value = None
         self._start_date_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(BaseDfbReport, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'BaseDfbReport(start_date={!r})'.format(
@@ -829,6 +846,9 @@ class BaseTeamFolderError(bb.Union):
             raise AttributeError("tag 'team_shared_dropbox_error' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(BaseTeamFolderError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'BaseTeamFolderError(%r, %r)' % (self._tag, self._value)
 
@@ -866,6 +886,9 @@ class CustomQuotaError(bb.Union):
         :rtype: bool
         """
         return self._tag == 'other'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(CustomQuotaError, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'CustomQuotaError(%r, %r)' % (self._tag, self._value)
@@ -958,12 +981,15 @@ class CustomQuotaResult(bb.Union):
             raise AttributeError("tag 'invalid_user' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(CustomQuotaResult, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'CustomQuotaResult(%r, %r)' % (self._tag, self._value)
 
 CustomQuotaResult_validator = bv.Union(CustomQuotaResult)
 
-class CustomQuotaUsersArg(object):
+class CustomQuotaUsersArg(bb.Struct):
     """
     :ivar users: List of users.
     """
@@ -1005,6 +1031,9 @@ class CustomQuotaUsersArg(object):
         self._users_value = None
         self._users_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(CustomQuotaUsersArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'CustomQuotaUsersArg(users={!r})'.format(
             self._users_value,
@@ -1012,7 +1041,7 @@ class CustomQuotaUsersArg(object):
 
 CustomQuotaUsersArg_validator = bv.Struct(CustomQuotaUsersArg)
 
-class DateRange(object):
+class DateRange(bb.Struct):
     """
     Input arguments that can be provided for most reports.
 
@@ -1093,6 +1122,9 @@ class DateRange(object):
         self._end_date_value = None
         self._end_date_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(DateRange, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'DateRange(start_date={!r}, end_date={!r})'.format(
             self._start_date_value,
@@ -1121,6 +1153,9 @@ class DateRangeError(bb.Union):
         :rtype: bool
         """
         return self._tag == 'other'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(DateRangeError, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'DateRangeError(%r, %r)' % (self._tag, self._value)
@@ -1306,6 +1341,9 @@ class DesktopClientSession(DeviceSession):
         self._is_delete_on_unlink_supported_value = None
         self._is_delete_on_unlink_supported_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(DesktopClientSession, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'DesktopClientSession(session_id={!r}, host_name={!r}, client_type={!r}, client_version={!r}, platform={!r}, is_delete_on_unlink_supported={!r}, ip_address={!r}, country={!r}, created={!r}, updated={!r})'.format(
             self._session_id_value,
@@ -1375,12 +1413,15 @@ class DesktopPlatform(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(DesktopPlatform, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'DesktopPlatform(%r, %r)' % (self._tag, self._value)
 
 DesktopPlatform_validator = bv.Union(DesktopPlatform)
 
-class DeviceSessionArg(object):
+class DeviceSessionArg(bb.Struct):
     """
     :ivar session_id: The session id.
     :ivar team_member_id: The unique id of the member owning the device.
@@ -1453,6 +1494,9 @@ class DeviceSessionArg(object):
         self._team_member_id_value = None
         self._team_member_id_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(DeviceSessionArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'DeviceSessionArg(session_id={!r}, team_member_id={!r})'.format(
             self._session_id_value,
@@ -1461,7 +1505,7 @@ class DeviceSessionArg(object):
 
 DeviceSessionArg_validator = bv.Struct(DeviceSessionArg)
 
-class DevicesActive(object):
+class DevicesActive(bb.Struct):
     """
     Each of the items is an array of values, one value per day. The value is the
     number of devices active within a time window, ending with that day. If
@@ -1540,7 +1584,7 @@ class DevicesActive(object):
         """
         Array of number of linked windows (desktop) clients with activity.
 
-        :rtype: list of [Optional[long]]
+        :rtype: list of [Optional[int]]
         """
         if self._windows_present:
             return self._windows_value
@@ -1563,7 +1607,7 @@ class DevicesActive(object):
         """
         Array of number of linked mac (desktop) clients with activity.
 
-        :rtype: list of [Optional[long]]
+        :rtype: list of [Optional[int]]
         """
         if self._macos_present:
             return self._macos_value
@@ -1586,7 +1630,7 @@ class DevicesActive(object):
         """
         Array of number of linked linus (desktop) clients with activity.
 
-        :rtype: list of [Optional[long]]
+        :rtype: list of [Optional[int]]
         """
         if self._linux_present:
             return self._linux_value
@@ -1609,7 +1653,7 @@ class DevicesActive(object):
         """
         Array of number of linked ios devices with activity.
 
-        :rtype: list of [Optional[long]]
+        :rtype: list of [Optional[int]]
         """
         if self._ios_present:
             return self._ios_value
@@ -1632,7 +1676,7 @@ class DevicesActive(object):
         """
         Array of number of linked android devices with activity.
 
-        :rtype: list of [Optional[long]]
+        :rtype: list of [Optional[int]]
         """
         if self._android_present:
             return self._android_value
@@ -1656,7 +1700,7 @@ class DevicesActive(object):
         Array of number of other linked devices (blackberry, windows phone, etc)
         with activity.
 
-        :rtype: list of [Optional[long]]
+        :rtype: list of [Optional[int]]
         """
         if self._other_present:
             return self._other_value
@@ -1679,7 +1723,7 @@ class DevicesActive(object):
         """
         Array of total number of linked clients with activity.
 
-        :rtype: list of [Optional[long]]
+        :rtype: list of [Optional[int]]
         """
         if self._total_present:
             return self._total_value
@@ -1697,6 +1741,9 @@ class DevicesActive(object):
         self._total_value = None
         self._total_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(DevicesActive, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'DevicesActive(windows={!r}, macos={!r}, linux={!r}, ios={!r}, android={!r}, other={!r}, total={!r})'.format(
             self._windows_value,
@@ -1710,7 +1757,7 @@ class DevicesActive(object):
 
 DevicesActive_validator = bv.Struct(DevicesActive)
 
-class ExcludedUsersListArg(object):
+class ExcludedUsersListArg(bb.Struct):
     """
     Excluded users list argument.
 
@@ -1736,7 +1783,7 @@ class ExcludedUsersListArg(object):
         """
         Number of results to return per call.
 
-        :rtype: long
+        :rtype: int
         """
         if self._limit_present:
             return self._limit_value
@@ -1754,6 +1801,9 @@ class ExcludedUsersListArg(object):
         self._limit_value = None
         self._limit_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ExcludedUsersListArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ExcludedUsersListArg(limit={!r})'.format(
             self._limit_value,
@@ -1761,7 +1811,7 @@ class ExcludedUsersListArg(object):
 
 ExcludedUsersListArg_validator = bv.Struct(ExcludedUsersListArg)
 
-class ExcludedUsersListContinueArg(object):
+class ExcludedUsersListContinueArg(bb.Struct):
     """
     Excluded users list continue argument.
 
@@ -1805,6 +1855,9 @@ class ExcludedUsersListContinueArg(object):
         self._cursor_value = None
         self._cursor_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ExcludedUsersListContinueArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ExcludedUsersListContinueArg(cursor={!r})'.format(
             self._cursor_value,
@@ -1845,6 +1898,9 @@ class ExcludedUsersListContinueError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ExcludedUsersListContinueError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ExcludedUsersListContinueError(%r, %r)' % (self._tag, self._value)
 
@@ -1883,12 +1939,15 @@ class ExcludedUsersListError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ExcludedUsersListError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ExcludedUsersListError(%r, %r)' % (self._tag, self._value)
 
 ExcludedUsersListError_validator = bv.Union(ExcludedUsersListError)
 
-class ExcludedUsersListResult(object):
+class ExcludedUsersListResult(bb.Struct):
     """
     Excluded users list result.
 
@@ -2004,6 +2063,9 @@ class ExcludedUsersListResult(object):
         self._has_more_value = None
         self._has_more_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ExcludedUsersListResult, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ExcludedUsersListResult(users={!r}, has_more={!r}, cursor={!r})'.format(
             self._users_value,
@@ -2013,7 +2075,7 @@ class ExcludedUsersListResult(object):
 
 ExcludedUsersListResult_validator = bv.Struct(ExcludedUsersListResult)
 
-class ExcludedUsersUpdateArg(object):
+class ExcludedUsersUpdateArg(bb.Struct):
     """
     Argument of excluded users update operation. Should include a list of users
     to add/remove (according to endpoint), Maximum size of the list is 1000
@@ -2061,6 +2123,9 @@ class ExcludedUsersUpdateArg(object):
     def users(self):
         self._users_value = None
         self._users_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ExcludedUsersUpdateArg, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'ExcludedUsersUpdateArg(users={!r})'.format(
@@ -2114,12 +2179,15 @@ class ExcludedUsersUpdateError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ExcludedUsersUpdateError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ExcludedUsersUpdateError(%r, %r)' % (self._tag, self._value)
 
 ExcludedUsersUpdateError_validator = bv.Union(ExcludedUsersUpdateError)
 
-class ExcludedUsersUpdateResult(object):
+class ExcludedUsersUpdateResult(bb.Struct):
     """
     Excluded users update result.
 
@@ -2163,6 +2231,9 @@ class ExcludedUsersUpdateResult(object):
         self._status_value = None
         self._status_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ExcludedUsersUpdateResult, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ExcludedUsersUpdateResult(status={!r})'.format(
             self._status_value,
@@ -2203,6 +2274,9 @@ class ExcludedUsersUpdateStatus(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ExcludedUsersUpdateStatus, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ExcludedUsersUpdateStatus(%r, %r)' % (self._tag, self._value)
 
@@ -2210,7 +2284,7 @@ ExcludedUsersUpdateStatus_validator = bv.Union(ExcludedUsersUpdateStatus)
 
 class Feature(bb.Union):
     """
-    A set of features that Dropbox for Business account support.
+    A set of features that a Dropbox Business account may support.
 
     This class acts as a tagged union. Only one of the ``is_*`` methods will
     return true. To get the associated value of a tag (if one exists), use the
@@ -2218,9 +2292,10 @@ class Feature(bb.Union):
 
     :ivar upload_api_rate_limit: The number of upload API calls allowed per
         month.
-    :ivar has_team_shared_dropbox: Does this team have a have a company shared
-        dropbox.
+    :ivar has_team_shared_dropbox: Does this team have a shared team root.
     :ivar has_team_file_events: Does this team have file events.
+    :ivar has_team_selective_sync: Does this team have team selective sync
+        enabled.
     """
 
     _catch_all = 'other'
@@ -2230,6 +2305,8 @@ class Feature(bb.Union):
     has_team_shared_dropbox = None
     # Attribute is overwritten below the class definition
     has_team_file_events = None
+    # Attribute is overwritten below the class definition
+    has_team_selective_sync = None
     # Attribute is overwritten below the class definition
     other = None
 
@@ -2257,6 +2334,14 @@ class Feature(bb.Union):
         """
         return self._tag == 'has_team_file_events'
 
+    def is_has_team_selective_sync(self):
+        """
+        Check if the union tag is ``has_team_selective_sync``.
+
+        :rtype: bool
+        """
+        return self._tag == 'has_team_selective_sync'
+
     def is_other(self):
         """
         Check if the union tag is ``other``.
@@ -2264,6 +2349,9 @@ class Feature(bb.Union):
         :rtype: bool
         """
         return self._tag == 'other'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(Feature, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'Feature(%r, %r)' % (self._tag, self._value)
@@ -2273,7 +2361,7 @@ Feature_validator = bv.Union(Feature)
 class FeatureValue(bb.Union):
     """
     The values correspond to entries in :class:`Feature`. You may get different
-    value according to your Dropbox for Business plan.
+    value according to your Dropbox Business plan.
 
     This class acts as a tagged union. Only one of the ``is_*`` methods will
     return true. To get the associated value of a tag (if one exists), use the
@@ -2317,6 +2405,17 @@ class FeatureValue(bb.Union):
         """
         return cls('has_team_file_events', val)
 
+    @classmethod
+    def has_team_selective_sync(cls, val):
+        """
+        Create an instance of this class set to the ``has_team_selective_sync``
+        tag with value ``val``.
+
+        :param HasTeamSelectiveSyncValue val:
+        :rtype: FeatureValue
+        """
+        return cls('has_team_selective_sync', val)
+
     def is_upload_api_rate_limit(self):
         """
         Check if the union tag is ``upload_api_rate_limit``.
@@ -2340,6 +2439,14 @@ class FeatureValue(bb.Union):
         :rtype: bool
         """
         return self._tag == 'has_team_file_events'
+
+    def is_has_team_selective_sync(self):
+        """
+        Check if the union tag is ``has_team_selective_sync``.
+
+        :rtype: bool
+        """
+        return self._tag == 'has_team_selective_sync'
 
     def is_other(self):
         """
@@ -2379,12 +2486,25 @@ class FeatureValue(bb.Union):
             raise AttributeError("tag 'has_team_file_events' not set")
         return self._value
 
+    def get_has_team_selective_sync(self):
+        """
+        Only call this if :meth:`is_has_team_selective_sync` is true.
+
+        :rtype: HasTeamSelectiveSyncValue
+        """
+        if not self.is_has_team_selective_sync():
+            raise AttributeError("tag 'has_team_selective_sync' not set")
+        return self._value
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(FeatureValue, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'FeatureValue(%r, %r)' % (self._tag, self._value)
 
 FeatureValue_validator = bv.Union(FeatureValue)
 
-class FeaturesGetValuesBatchArg(object):
+class FeaturesGetValuesBatchArg(bb.Struct):
     """
     :ivar features: A list of features in :class:`Feature`. If the list is
         empty, this route will return :class:`FeaturesGetValuesBatchError`.
@@ -2428,6 +2548,9 @@ class FeaturesGetValuesBatchArg(object):
         self._features_value = None
         self._features_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(FeaturesGetValuesBatchArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'FeaturesGetValuesBatchArg(features={!r})'.format(
             self._features_value,
@@ -2467,12 +2590,15 @@ class FeaturesGetValuesBatchError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(FeaturesGetValuesBatchError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'FeaturesGetValuesBatchError(%r, %r)' % (self._tag, self._value)
 
 FeaturesGetValuesBatchError_validator = bv.Union(FeaturesGetValuesBatchError)
 
-class FeaturesGetValuesBatchResult(object):
+class FeaturesGetValuesBatchResult(bb.Struct):
 
     __slots__ = [
         '_values_value',
@@ -2508,6 +2634,9 @@ class FeaturesGetValuesBatchResult(object):
     def values(self):
         self._values_value = None
         self._values_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(FeaturesGetValuesBatchResult, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'FeaturesGetValuesBatchResult(values={!r})'.format(
@@ -2661,7 +2790,7 @@ class GetActivityReport(BaseDfbReport):
         """
         Array of total number of adds by team members.
 
-        :rtype: list of [Optional[long]]
+        :rtype: list of [Optional[int]]
         """
         if self._adds_present:
             return self._adds_value
@@ -2685,7 +2814,7 @@ class GetActivityReport(BaseDfbReport):
         Array of number of edits by team members. If the same user edits the
         same file multiple times this is counted as a single edit.
 
-        :rtype: list of [Optional[long]]
+        :rtype: list of [Optional[int]]
         """
         if self._edits_present:
             return self._edits_value
@@ -2708,7 +2837,7 @@ class GetActivityReport(BaseDfbReport):
         """
         Array of total number of deletes by team members.
 
-        :rtype: list of [Optional[long]]
+        :rtype: list of [Optional[int]]
         """
         if self._deletes_present:
             return self._deletes_value
@@ -2731,7 +2860,7 @@ class GetActivityReport(BaseDfbReport):
         """
         Array of the number of users who have been active in the last 28 days.
 
-        :rtype: list of [Optional[long]]
+        :rtype: list of [Optional[int]]
         """
         if self._active_users_28_day_present:
             return self._active_users_28_day_value
@@ -2754,7 +2883,7 @@ class GetActivityReport(BaseDfbReport):
         """
         Array of the number of users who have been active in the last week.
 
-        :rtype: list of [Optional[long]]
+        :rtype: list of [Optional[int]]
         """
         if self._active_users_7_day_present:
             return self._active_users_7_day_value
@@ -2777,7 +2906,7 @@ class GetActivityReport(BaseDfbReport):
         """
         Array of the number of users who have been active in the last day.
 
-        :rtype: list of [Optional[long]]
+        :rtype: list of [Optional[int]]
         """
         if self._active_users_1_day_present:
             return self._active_users_1_day_value
@@ -2801,7 +2930,7 @@ class GetActivityReport(BaseDfbReport):
         Array of the number of shared folders with some activity in the last 28
         days.
 
-        :rtype: list of [Optional[long]]
+        :rtype: list of [Optional[int]]
         """
         if self._active_shared_folders_28_day_present:
             return self._active_shared_folders_28_day_value
@@ -2825,7 +2954,7 @@ class GetActivityReport(BaseDfbReport):
         Array of the number of shared folders with some activity in the last
         week.
 
-        :rtype: list of [Optional[long]]
+        :rtype: list of [Optional[int]]
         """
         if self._active_shared_folders_7_day_present:
             return self._active_shared_folders_7_day_value
@@ -2849,7 +2978,7 @@ class GetActivityReport(BaseDfbReport):
         Array of the number of shared folders with some activity in the last
         day.
 
-        :rtype: list of [Optional[long]]
+        :rtype: list of [Optional[int]]
         """
         if self._active_shared_folders_1_day_present:
             return self._active_shared_folders_1_day_value
@@ -2872,7 +3001,7 @@ class GetActivityReport(BaseDfbReport):
         """
         Array of the number of shared links created.
 
-        :rtype: list of [Optional[long]]
+        :rtype: list of [Optional[int]]
         """
         if self._shared_links_created_present:
             return self._shared_links_created_value
@@ -2896,7 +3025,7 @@ class GetActivityReport(BaseDfbReport):
         Array of the number of views by team users to shared links created by
         the team.
 
-        :rtype: list of [Optional[long]]
+        :rtype: list of [Optional[int]]
         """
         if self._shared_links_viewed_by_team_present:
             return self._shared_links_viewed_by_team_value
@@ -2920,7 +3049,7 @@ class GetActivityReport(BaseDfbReport):
         Array of the number of views by users outside of the team to shared
         links created by the team.
 
-        :rtype: list of [Optional[long]]
+        :rtype: list of [Optional[int]]
         """
         if self._shared_links_viewed_by_outside_user_present:
             return self._shared_links_viewed_by_outside_user_value
@@ -2944,7 +3073,7 @@ class GetActivityReport(BaseDfbReport):
         Array of the number of views by non-logged-in users to shared links
         created by the team.
 
-        :rtype: list of [Optional[long]]
+        :rtype: list of [Optional[int]]
         """
         if self._shared_links_viewed_by_not_logged_in_present:
             return self._shared_links_viewed_by_not_logged_in_value
@@ -2967,7 +3096,7 @@ class GetActivityReport(BaseDfbReport):
         """
         Array of the total number of views to shared links created by the team.
 
-        :rtype: list of [Optional[long]]
+        :rtype: list of [Optional[int]]
         """
         if self._shared_links_viewed_total_present:
             return self._shared_links_viewed_total_value
@@ -2984,6 +3113,9 @@ class GetActivityReport(BaseDfbReport):
     def shared_links_viewed_total(self):
         self._shared_links_viewed_total_value = None
         self._shared_links_viewed_total_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GetActivityReport, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'GetActivityReport(start_date={!r}, adds={!r}, edits={!r}, deletes={!r}, active_users_28_day={!r}, active_users_7_day={!r}, active_users_1_day={!r}, active_shared_folders_28_day={!r}, active_shared_folders_7_day={!r}, active_shared_folders_1_day={!r}, shared_links_created={!r}, shared_links_viewed_by_team={!r}, shared_links_viewed_by_outside_user={!r}, shared_links_viewed_by_not_logged_in={!r}, shared_links_viewed_total={!r})'.format(
@@ -3119,6 +3251,9 @@ class GetDevicesReport(BaseDfbReport):
         self._active_28_day_value = None
         self._active_28_day_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GetDevicesReport, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GetDevicesReport(start_date={!r}, active_1_day={!r}, active_7_day={!r}, active_28_day={!r})'.format(
             self._start_date_value,
@@ -3193,7 +3328,7 @@ class GetMembershipReport(BaseDfbReport):
         """
         Team size, for each day.
 
-        :rtype: list of [Optional[long]]
+        :rtype: list of [Optional[int]]
         """
         if self._team_size_present:
             return self._team_size_value
@@ -3216,7 +3351,7 @@ class GetMembershipReport(BaseDfbReport):
         """
         The number of pending invites to the team, for each day.
 
-        :rtype: list of [Optional[long]]
+        :rtype: list of [Optional[int]]
         """
         if self._pending_invites_present:
             return self._pending_invites_value
@@ -3239,7 +3374,7 @@ class GetMembershipReport(BaseDfbReport):
         """
         The number of members that joined the team, for each day.
 
-        :rtype: list of [Optional[long]]
+        :rtype: list of [Optional[int]]
         """
         if self._members_joined_present:
             return self._members_joined_value
@@ -3262,7 +3397,7 @@ class GetMembershipReport(BaseDfbReport):
         """
         The number of suspended team members, for each day.
 
-        :rtype: list of [Optional[long]]
+        :rtype: list of [Optional[int]]
         """
         if self._suspended_members_present:
             return self._suspended_members_value
@@ -3285,7 +3420,7 @@ class GetMembershipReport(BaseDfbReport):
         """
         The total number of licenses the team has, for each day.
 
-        :rtype: list of [Optional[long]]
+        :rtype: list of [Optional[int]]
         """
         if self._licenses_present:
             return self._licenses_value
@@ -3302,6 +3437,9 @@ class GetMembershipReport(BaseDfbReport):
     def licenses(self):
         self._licenses_value = None
         self._licenses_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GetMembershipReport, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'GetMembershipReport(start_date={!r}, team_size={!r}, pending_invites={!r}, members_joined={!r}, suspended_members={!r}, licenses={!r})'.format(
@@ -3386,7 +3524,7 @@ class GetStorageReport(BaseDfbReport):
         """
         Sum of the shared, unshared, and datastore usages, for each day.
 
-        :rtype: list of [Optional[long]]
+        :rtype: list of [Optional[int]]
         """
         if self._total_usage_present:
             return self._total_usage_value
@@ -3410,7 +3548,7 @@ class GetStorageReport(BaseDfbReport):
         Array of the combined size (bytes) of team members' shared folders, for
         each day.
 
-        :rtype: list of [Optional[long]]
+        :rtype: list of [Optional[int]]
         """
         if self._shared_usage_present:
             return self._shared_usage_value
@@ -3434,7 +3572,7 @@ class GetStorageReport(BaseDfbReport):
         Array of the combined size (bytes) of team members' root namespaces, for
         each day.
 
-        :rtype: list of [Optional[long]]
+        :rtype: list of [Optional[int]]
         """
         if self._unshared_usage_present:
             return self._unshared_usage_value
@@ -3458,7 +3596,7 @@ class GetStorageReport(BaseDfbReport):
         Array of the number of shared folders owned by team members, for each
         day.
 
-        :rtype: list of [Optional[long]]
+        :rtype: list of [Optional[int]]
         """
         if self._shared_folders_present:
             return self._shared_folders_value
@@ -3503,6 +3641,9 @@ class GetStorageReport(BaseDfbReport):
     def member_storage_map(self):
         self._member_storage_map_value = None
         self._member_storage_map_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GetStorageReport, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'GetStorageReport(start_date={!r}, total_usage={!r}, shared_usage={!r}, unshared_usage={!r}, shared_folders={!r}, member_storage_map={!r})'.format(
@@ -3550,12 +3691,15 @@ class GroupAccessType(bb.Union):
         """
         return self._tag == 'owner'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupAccessType, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GroupAccessType(%r, %r)' % (self._tag, self._value)
 
 GroupAccessType_validator = bv.Union(GroupAccessType)
 
-class GroupCreateArg(object):
+class GroupCreateArg(bb.Struct):
     """
     :ivar group_name: Group name.
     :ivar group_external_id: The creator of a team can associate an arbitrary
@@ -3648,7 +3792,7 @@ class GroupCreateArg(object):
         Whether the team can be managed by selected users, or only by team
         admins.
 
-        :rtype: team_common.GroupManagementType_validator
+        :rtype: team_common.GroupManagementType
         """
         if self._group_management_type_present:
             return self._group_management_type_value
@@ -3668,6 +3812,9 @@ class GroupCreateArg(object):
     def group_management_type(self):
         self._group_management_type_value = None
         self._group_management_type_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupCreateArg, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'GroupCreateArg(group_name={!r}, group_external_id={!r}, group_management_type={!r})'.format(
@@ -3745,6 +3892,9 @@ class GroupCreateError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupCreateError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GroupCreateError(%r, %r)' % (self._tag, self._value)
 
@@ -3784,6 +3934,9 @@ class GroupSelectorError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupSelectorError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GroupSelectorError(%r, %r)' % (self._tag, self._value)
 
@@ -3813,6 +3966,9 @@ class GroupSelectorWithTeamGroupError(GroupSelectorError):
         """
         return self._tag == 'system_managed_group_disallowed'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupSelectorWithTeamGroupError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GroupSelectorWithTeamGroupError(%r, %r)' % (self._tag, self._value)
 
@@ -3837,6 +3993,9 @@ class GroupDeleteError(GroupSelectorWithTeamGroupError):
         :rtype: bool
         """
         return self._tag == 'group_already_deleted'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupDeleteError, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'GroupDeleteError(%r, %r)' % (self._tag, self._value)
@@ -3915,7 +4074,7 @@ class GroupFullInfo(team_common.GroupSummary):
         The group creation time as a UTC timestamp in milliseconds since the
         Unix epoch.
 
-        :rtype: long
+        :rtype: int
         """
         if self._created_present:
             return self._created_value
@@ -3933,6 +4092,9 @@ class GroupFullInfo(team_common.GroupSummary):
         self._created_value = None
         self._created_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupFullInfo, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GroupFullInfo(group_name={!r}, group_id={!r}, group_management_type={!r}, created={!r}, group_external_id={!r}, member_count={!r}, members={!r})'.format(
             self._group_name_value,
@@ -3946,7 +4108,7 @@ class GroupFullInfo(team_common.GroupSummary):
 
 GroupFullInfo_validator = bv.Struct(GroupFullInfo)
 
-class GroupMemberInfo(object):
+class GroupMemberInfo(bb.Struct):
     """
     Profile of group member, and role in group.
 
@@ -4021,6 +4183,9 @@ class GroupMemberInfo(object):
         self._access_type_value = None
         self._access_type_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupMemberInfo, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GroupMemberInfo(profile={!r}, access_type={!r})'.format(
             self._profile_value,
@@ -4029,7 +4194,7 @@ class GroupMemberInfo(object):
 
 GroupMemberInfo_validator = bv.Struct(GroupMemberInfo)
 
-class GroupMemberSelector(object):
+class GroupMemberSelector(bb.Struct):
     """
     Argument for selecting a group and a single user.
 
@@ -4104,6 +4269,9 @@ class GroupMemberSelector(object):
         self._user_value = None
         self._user_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupMemberSelector, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GroupMemberSelector(group={!r}, user={!r})'.format(
             self._group_value,
@@ -4135,6 +4303,9 @@ class GroupMemberSelectorError(GroupSelectorWithTeamGroupError):
         """
         return self._tag == 'member_not_in_group'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupMemberSelectorError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GroupMemberSelectorError(%r, %r)' % (self._tag, self._value)
 
@@ -4161,12 +4332,15 @@ class GroupMemberSetAccessTypeError(GroupMemberSelectorError):
         """
         return self._tag == 'user_cannot_be_manager_of_company_managed_group'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupMemberSetAccessTypeError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GroupMemberSetAccessTypeError(%r, %r)' % (self._tag, self._value)
 
 GroupMemberSetAccessTypeError_validator = bv.Union(GroupMemberSetAccessTypeError)
 
-class IncludeMembersArg(object):
+class IncludeMembersArg(bb.Struct):
     """
     :ivar return_members: Whether to return the list of members in the group.
         Note that the default value will cause all the group members  to be
@@ -4211,6 +4385,9 @@ class IncludeMembersArg(object):
     def return_members(self):
         self._return_members_value = None
         self._return_members_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(IncludeMembersArg, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'IncludeMembersArg(return_members={!r})'.format(
@@ -4293,6 +4470,9 @@ class GroupMembersAddArg(IncludeMembersArg):
     def members(self):
         self._members_value = None
         self._members_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupMembersAddArg, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'GroupMembersAddArg(group={!r}, members={!r}, return_members={!r})'.format(
@@ -4454,12 +4634,15 @@ class GroupMembersAddError(GroupSelectorWithTeamGroupError):
             raise AttributeError("tag 'user_cannot_be_manager_of_company_managed_group' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupMembersAddError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GroupMembersAddError(%r, %r)' % (self._tag, self._value)
 
 GroupMembersAddError_validator = bv.Union(GroupMembersAddError)
 
-class GroupMembersChangeResult(object):
+class GroupMembersChangeResult(bb.Struct):
     """
     Result returned by :meth:`dropbox.dropbox.Dropbox.team_groups_members_add`
     and :meth:`dropbox.dropbox.Dropbox.team_groups_members_remove`.
@@ -4537,6 +4720,9 @@ class GroupMembersChangeResult(object):
     def async_job_id(self):
         self._async_job_id_value = None
         self._async_job_id_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupMembersChangeResult, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'GroupMembersChangeResult(group_info={!r}, async_job_id={!r})'.format(
@@ -4621,6 +4807,9 @@ class GroupMembersRemoveArg(IncludeMembersArg):
         self._users_value = None
         self._users_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupMembersRemoveArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GroupMembersRemoveArg(group={!r}, users={!r}, return_members={!r})'.format(
             self._group_value,
@@ -4653,6 +4842,9 @@ class GroupMembersSelectorError(GroupSelectorWithTeamGroupError):
         :rtype: bool
         """
         return self._tag == 'member_not_in_group'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupMembersSelectorError, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'GroupMembersSelectorError(%r, %r)' % (self._tag, self._value)
@@ -4745,12 +4937,15 @@ class GroupMembersRemoveError(GroupMembersSelectorError):
             raise AttributeError("tag 'users_not_found' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupMembersRemoveError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GroupMembersRemoveError(%r, %r)' % (self._tag, self._value)
 
 GroupMembersRemoveError_validator = bv.Union(GroupMembersRemoveError)
 
-class GroupMembersSelector(object):
+class GroupMembersSelector(bb.Struct):
     """
     Argument for selecting a group and a list of users.
 
@@ -4824,6 +5019,9 @@ class GroupMembersSelector(object):
     def users(self):
         self._users_value = None
         self._users_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupMembersSelector, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'GroupMembersSelector(group={!r}, users={!r})'.format(
@@ -4914,6 +5112,9 @@ class GroupMembersSetAccessTypeArg(GroupMemberSelector):
         self._return_members_value = None
         self._return_members_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupMembersSetAccessTypeArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GroupMembersSetAccessTypeArg(group={!r}, user={!r}, access_type={!r}, return_members={!r})'.format(
             self._group_value,
@@ -5000,6 +5201,9 @@ class GroupSelector(bb.Union):
         if not self.is_group_external_id():
             raise AttributeError("tag 'group_external_id' not set")
         return self._value
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupSelector, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'GroupSelector(%r, %r)' % (self._tag, self._value)
@@ -5135,7 +5339,7 @@ class GroupUpdateArgs(IncludeMembersArg):
         """
         Set new group management type, if provided.
 
-        :rtype: team_common.GroupManagementType_validator
+        :rtype: team_common.GroupManagementType
         """
         if self._new_group_management_type_present:
             return self._new_group_management_type_value
@@ -5155,6 +5359,9 @@ class GroupUpdateArgs(IncludeMembersArg):
     def new_group_management_type(self):
         self._new_group_management_type_value = None
         self._new_group_management_type_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupUpdateArgs, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'GroupUpdateArgs(group={!r}, return_members={!r}, new_group_name={!r}, new_group_external_id={!r}, new_group_management_type={!r})'.format(
@@ -5211,6 +5418,9 @@ class GroupUpdateError(GroupSelectorWithTeamGroupError):
         """
         return self._tag == 'external_id_already_in_use'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupUpdateError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GroupUpdateError(%r, %r)' % (self._tag, self._value)
 
@@ -5246,6 +5456,9 @@ class GroupsGetInfoError(bb.Union):
         :rtype: bool
         """
         return self._tag == 'other'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupsGetInfoError, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'GroupsGetInfoError(%r, %r)' % (self._tag, self._value)
@@ -5332,12 +5545,15 @@ class GroupsGetInfoItem(bb.Union):
             raise AttributeError("tag 'group_info' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupsGetInfoItem, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GroupsGetInfoItem(%r, %r)' % (self._tag, self._value)
 
 GroupsGetInfoItem_validator = bv.Union(GroupsGetInfoItem)
 
-class GroupsListArg(object):
+class GroupsListArg(bb.Struct):
     """
     :ivar limit: Number of results to return per call.
     """
@@ -5361,7 +5577,7 @@ class GroupsListArg(object):
         """
         Number of results to return per call.
 
-        :rtype: long
+        :rtype: int
         """
         if self._limit_present:
             return self._limit_value
@@ -5379,6 +5595,9 @@ class GroupsListArg(object):
         self._limit_value = None
         self._limit_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupsListArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GroupsListArg(limit={!r})'.format(
             self._limit_value,
@@ -5386,7 +5605,7 @@ class GroupsListArg(object):
 
 GroupsListArg_validator = bv.Struct(GroupsListArg)
 
-class GroupsListContinueArg(object):
+class GroupsListContinueArg(bb.Struct):
     """
     :ivar cursor: Indicates from what point to get the next set of groups.
     """
@@ -5428,6 +5647,9 @@ class GroupsListContinueArg(object):
         self._cursor_value = None
         self._cursor_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupsListContinueArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GroupsListContinueArg(cursor={!r})'.format(
             self._cursor_value,
@@ -5466,12 +5688,15 @@ class GroupsListContinueError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupsListContinueError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GroupsListContinueError(%r, %r)' % (self._tag, self._value)
 
 GroupsListContinueError_validator = bv.Union(GroupsListContinueError)
 
-class GroupsListResult(object):
+class GroupsListResult(bb.Struct):
     """
     :ivar cursor: Pass the cursor into
         :meth:`dropbox.dropbox.Dropbox.team_groups_list_continue` to obtain the
@@ -5513,7 +5738,7 @@ class GroupsListResult(object):
     @property
     def groups(self):
         """
-        :rtype: list of [team_common.GroupSummary_validator]
+        :rtype: list of [team_common.GroupSummary]
         """
         if self._groups_present:
             return self._groups_value
@@ -5582,6 +5807,9 @@ class GroupsListResult(object):
         self._has_more_value = None
         self._has_more_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupsListResult, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GroupsListResult(groups={!r}, cursor={!r}, has_more={!r})'.format(
             self._groups_value,
@@ -5591,7 +5819,7 @@ class GroupsListResult(object):
 
 GroupsListResult_validator = bv.Struct(GroupsListResult)
 
-class GroupsMembersListArg(object):
+class GroupsMembersListArg(bb.Struct):
     """
     :ivar group: The group whose members are to be listed.
     :ivar limit: Number of results to return per call.
@@ -5646,7 +5874,7 @@ class GroupsMembersListArg(object):
         """
         Number of results to return per call.
 
-        :rtype: long
+        :rtype: int
         """
         if self._limit_present:
             return self._limit_value
@@ -5664,6 +5892,9 @@ class GroupsMembersListArg(object):
         self._limit_value = None
         self._limit_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupsMembersListArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GroupsMembersListArg(group={!r}, limit={!r})'.format(
             self._group_value,
@@ -5672,7 +5903,7 @@ class GroupsMembersListArg(object):
 
 GroupsMembersListArg_validator = bv.Struct(GroupsMembersListArg)
 
-class GroupsMembersListContinueArg(object):
+class GroupsMembersListContinueArg(bb.Struct):
     """
     :ivar cursor: Indicates from what point to get the next set of groups.
     """
@@ -5714,6 +5945,9 @@ class GroupsMembersListContinueArg(object):
         self._cursor_value = None
         self._cursor_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupsMembersListContinueArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GroupsMembersListContinueArg(cursor={!r})'.format(
             self._cursor_value,
@@ -5752,12 +5986,15 @@ class GroupsMembersListContinueError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupsMembersListContinueError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GroupsMembersListContinueError(%r, %r)' % (self._tag, self._value)
 
 GroupsMembersListContinueError_validator = bv.Union(GroupsMembersListContinueError)
 
-class GroupsMembersListResult(object):
+class GroupsMembersListResult(bb.Struct):
     """
     :ivar cursor: Pass the cursor into
         :meth:`dropbox.dropbox.Dropbox.team_groups_members_list_continue` to
@@ -5868,6 +6105,9 @@ class GroupsMembersListResult(object):
         self._has_more_value = None
         self._has_more_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupsMembersListResult, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GroupsMembersListResult(members={!r}, cursor={!r}, has_more={!r})'.format(
             self._members_value,
@@ -5877,7 +6117,7 @@ class GroupsMembersListResult(object):
 
 GroupsMembersListResult_validator = bv.Struct(GroupsMembersListResult)
 
-class GroupsPollError(async.PollError):
+class GroupsPollError(async_.PollError):
     """
     This class acts as a tagged union. Only one of the ``is_*`` methods will
     return true. To get the associated value of a tag (if one exists), use the
@@ -5896,6 +6136,9 @@ class GroupsPollError(async.PollError):
         :rtype: bool
         """
         return self._tag == 'access_denied'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupsPollError, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'GroupsPollError(%r, %r)' % (self._tag, self._value)
@@ -5979,6 +6222,9 @@ class GroupsSelector(bb.Union):
             raise AttributeError("tag 'group_external_ids' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupsSelector, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GroupsSelector(%r, %r)' % (self._tag, self._value)
 
@@ -6038,10 +6284,76 @@ class HasTeamFileEventsValue(bb.Union):
             raise AttributeError("tag 'enabled' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(HasTeamFileEventsValue, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'HasTeamFileEventsValue(%r, %r)' % (self._tag, self._value)
 
 HasTeamFileEventsValue_validator = bv.Union(HasTeamFileEventsValue)
+
+class HasTeamSelectiveSyncValue(bb.Union):
+    """
+    The value for ``Feature.has_team_selective_sync``.
+
+    This class acts as a tagged union. Only one of the ``is_*`` methods will
+    return true. To get the associated value of a tag (if one exists), use the
+    corresponding ``get_*`` method.
+
+    :ivar bool has_team_selective_sync: Does this team have team selective sync
+        enabled.
+    """
+
+    _catch_all = 'other'
+    # Attribute is overwritten below the class definition
+    other = None
+
+    @classmethod
+    def has_team_selective_sync(cls, val):
+        """
+        Create an instance of this class set to the ``has_team_selective_sync``
+        tag with value ``val``.
+
+        :param bool val:
+        :rtype: HasTeamSelectiveSyncValue
+        """
+        return cls('has_team_selective_sync', val)
+
+    def is_has_team_selective_sync(self):
+        """
+        Check if the union tag is ``has_team_selective_sync``.
+
+        :rtype: bool
+        """
+        return self._tag == 'has_team_selective_sync'
+
+    def is_other(self):
+        """
+        Check if the union tag is ``other``.
+
+        :rtype: bool
+        """
+        return self._tag == 'other'
+
+    def get_has_team_selective_sync(self):
+        """
+        Does this team have team selective sync enabled.
+
+        Only call this if :meth:`is_has_team_selective_sync` is true.
+
+        :rtype: bool
+        """
+        if not self.is_has_team_selective_sync():
+            raise AttributeError("tag 'has_team_selective_sync' not set")
+        return self._value
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(HasTeamSelectiveSyncValue, self)._process_custom_annotations(annotation_type, processor)
+
+    def __repr__(self):
+        return 'HasTeamSelectiveSyncValue(%r, %r)' % (self._tag, self._value)
+
+HasTeamSelectiveSyncValue_validator = bv.Union(HasTeamSelectiveSyncValue)
 
 class HasTeamSharedDropboxValue(bb.Union):
     """
@@ -6051,8 +6363,7 @@ class HasTeamSharedDropboxValue(bb.Union):
     return true. To get the associated value of a tag (if one exists), use the
     corresponding ``get_*`` method.
 
-    :ivar bool has_team_shared_dropbox: Does this team have a team shared
-        dropbox.
+    :ivar bool has_team_shared_dropbox: Does this team have a shared team root.
     """
 
     _catch_all = 'other'
@@ -6088,7 +6399,7 @@ class HasTeamSharedDropboxValue(bb.Union):
 
     def get_has_team_shared_dropbox(self):
         """
-        Does this team have a team shared dropbox.
+        Does this team have a shared team root.
 
         Only call this if :meth:`is_has_team_shared_dropbox` is true.
 
@@ -6098,12 +6409,15 @@ class HasTeamSharedDropboxValue(bb.Union):
             raise AttributeError("tag 'has_team_shared_dropbox' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(HasTeamSharedDropboxValue, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'HasTeamSharedDropboxValue(%r, %r)' % (self._tag, self._value)
 
 HasTeamSharedDropboxValue_validator = bv.Union(HasTeamSharedDropboxValue)
 
-class ListMemberAppsArg(object):
+class ListMemberAppsArg(bb.Struct):
     """
     :ivar team_member_id: The team member id.
     """
@@ -6144,6 +6458,9 @@ class ListMemberAppsArg(object):
     def team_member_id(self):
         self._team_member_id_value = None
         self._team_member_id_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListMemberAppsArg, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'ListMemberAppsArg(team_member_id={!r})'.format(
@@ -6186,12 +6503,15 @@ class ListMemberAppsError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListMemberAppsError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListMemberAppsError(%r, %r)' % (self._tag, self._value)
 
 ListMemberAppsError_validator = bv.Union(ListMemberAppsError)
 
-class ListMemberAppsResult(object):
+class ListMemberAppsResult(bb.Struct):
     """
     :ivar linked_api_apps: List of third party applications linked by this team
         member.
@@ -6234,6 +6554,9 @@ class ListMemberAppsResult(object):
         self._linked_api_apps_value = None
         self._linked_api_apps_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListMemberAppsResult, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListMemberAppsResult(linked_api_apps={!r})'.format(
             self._linked_api_apps_value,
@@ -6241,7 +6564,7 @@ class ListMemberAppsResult(object):
 
 ListMemberAppsResult_validator = bv.Struct(ListMemberAppsResult)
 
-class ListMemberDevicesArg(object):
+class ListMemberDevicesArg(bb.Struct):
     """
     :ivar team_member_id: The team's member id.
     :ivar include_web_sessions: Whether to list web sessions of the team's
@@ -6379,6 +6702,9 @@ class ListMemberDevicesArg(object):
         self._include_mobile_clients_value = None
         self._include_mobile_clients_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListMemberDevicesArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListMemberDevicesArg(team_member_id={!r}, include_web_sessions={!r}, include_desktop_clients={!r}, include_mobile_clients={!r})'.format(
             self._team_member_id_value,
@@ -6420,12 +6746,15 @@ class ListMemberDevicesError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListMemberDevicesError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListMemberDevicesError(%r, %r)' % (self._tag, self._value)
 
 ListMemberDevicesError_validator = bv.Union(ListMemberDevicesError)
 
-class ListMemberDevicesResult(object):
+class ListMemberDevicesResult(bb.Struct):
     """
     :ivar active_web_sessions: List of web sessions made by this team member.
     :ivar desktop_client_sessions: List of desktop clients used by this team
@@ -6540,6 +6869,9 @@ class ListMemberDevicesResult(object):
         self._mobile_client_sessions_value = None
         self._mobile_client_sessions_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListMemberDevicesResult, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListMemberDevicesResult(active_web_sessions={!r}, desktop_client_sessions={!r}, mobile_client_sessions={!r})'.format(
             self._active_web_sessions_value,
@@ -6549,7 +6881,7 @@ class ListMemberDevicesResult(object):
 
 ListMemberDevicesResult_validator = bv.Struct(ListMemberDevicesResult)
 
-class ListMembersAppsArg(object):
+class ListMembersAppsArg(bb.Struct):
     """
     Arguments for
     :meth:`dropbox.dropbox.Dropbox.team_linked_apps_list_members_linked_apps`.
@@ -6605,6 +6937,9 @@ class ListMembersAppsArg(object):
         self._cursor_value = None
         self._cursor_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListMembersAppsArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListMembersAppsArg(cursor={!r})'.format(
             self._cursor_value,
@@ -6648,12 +6983,15 @@ class ListMembersAppsError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListMembersAppsError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListMembersAppsError(%r, %r)' % (self._tag, self._value)
 
 ListMembersAppsError_validator = bv.Union(ListMembersAppsError)
 
-class ListMembersAppsResult(object):
+class ListMembersAppsResult(bb.Struct):
     """
     Information returned by
     :meth:`dropbox.dropbox.Dropbox.team_linked_apps_list_members_linked_apps`.
@@ -6772,6 +7110,9 @@ class ListMembersAppsResult(object):
         self._cursor_value = None
         self._cursor_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListMembersAppsResult, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListMembersAppsResult(apps={!r}, has_more={!r}, cursor={!r})'.format(
             self._apps_value,
@@ -6781,7 +7122,7 @@ class ListMembersAppsResult(object):
 
 ListMembersAppsResult_validator = bv.Struct(ListMembersAppsResult)
 
-class ListMembersDevicesArg(object):
+class ListMembersDevicesArg(bb.Struct):
     """
     :ivar cursor: At the first call to the
         :meth:`dropbox.dropbox.Dropbox.team_devices_list_members_devices` the
@@ -6930,6 +7271,9 @@ class ListMembersDevicesArg(object):
         self._include_mobile_clients_value = None
         self._include_mobile_clients_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListMembersDevicesArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListMembersDevicesArg(cursor={!r}, include_web_sessions={!r}, include_desktop_clients={!r}, include_mobile_clients={!r})'.format(
             self._cursor_value,
@@ -6973,12 +7317,15 @@ class ListMembersDevicesError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListMembersDevicesError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListMembersDevicesError(%r, %r)' % (self._tag, self._value)
 
 ListMembersDevicesError_validator = bv.Union(ListMembersDevicesError)
 
-class ListMembersDevicesResult(object):
+class ListMembersDevicesResult(bb.Struct):
     """
     :ivar devices: The devices of each member of the team.
     :ivar has_more: If true, then there are more devices available. Pass the
@@ -7094,6 +7441,9 @@ class ListMembersDevicesResult(object):
         self._cursor_value = None
         self._cursor_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListMembersDevicesResult, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListMembersDevicesResult(devices={!r}, has_more={!r}, cursor={!r})'.format(
             self._devices_value,
@@ -7103,7 +7453,7 @@ class ListMembersDevicesResult(object):
 
 ListMembersDevicesResult_validator = bv.Struct(ListMembersDevicesResult)
 
-class ListTeamAppsArg(object):
+class ListTeamAppsArg(bb.Struct):
     """
     Arguments for
     :meth:`dropbox.dropbox.Dropbox.team_linked_apps_list_team_linked_apps`.
@@ -7159,6 +7509,9 @@ class ListTeamAppsArg(object):
         self._cursor_value = None
         self._cursor_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListTeamAppsArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListTeamAppsArg(cursor={!r})'.format(
             self._cursor_value,
@@ -7202,12 +7555,15 @@ class ListTeamAppsError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListTeamAppsError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListTeamAppsError(%r, %r)' % (self._tag, self._value)
 
 ListTeamAppsError_validator = bv.Union(ListTeamAppsError)
 
-class ListTeamAppsResult(object):
+class ListTeamAppsResult(bb.Struct):
     """
     Information returned by
     :meth:`dropbox.dropbox.Dropbox.team_linked_apps_list_team_linked_apps`.
@@ -7326,6 +7682,9 @@ class ListTeamAppsResult(object):
         self._cursor_value = None
         self._cursor_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListTeamAppsResult, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListTeamAppsResult(apps={!r}, has_more={!r}, cursor={!r})'.format(
             self._apps_value,
@@ -7335,7 +7694,7 @@ class ListTeamAppsResult(object):
 
 ListTeamAppsResult_validator = bv.Struct(ListTeamAppsResult)
 
-class ListTeamDevicesArg(object):
+class ListTeamDevicesArg(bb.Struct):
     """
     :ivar cursor: At the first call to the
         :meth:`dropbox.dropbox.Dropbox.team_devices_list_team_devices` the
@@ -7484,6 +7843,9 @@ class ListTeamDevicesArg(object):
         self._include_mobile_clients_value = None
         self._include_mobile_clients_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListTeamDevicesArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListTeamDevicesArg(cursor={!r}, include_web_sessions={!r}, include_desktop_clients={!r}, include_mobile_clients={!r})'.format(
             self._cursor_value,
@@ -7527,12 +7889,15 @@ class ListTeamDevicesError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListTeamDevicesError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListTeamDevicesError(%r, %r)' % (self._tag, self._value)
 
 ListTeamDevicesError_validator = bv.Union(ListTeamDevicesError)
 
-class ListTeamDevicesResult(object):
+class ListTeamDevicesResult(bb.Struct):
     """
     :ivar devices: The devices of each member of the team.
     :ivar has_more: If true, then there are more devices available. Pass the
@@ -7647,6 +8012,9 @@ class ListTeamDevicesResult(object):
         self._cursor_value = None
         self._cursor_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListTeamDevicesResult, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListTeamDevicesResult(devices={!r}, has_more={!r}, cursor={!r})'.format(
             self._devices_value,
@@ -7656,7 +8024,7 @@ class ListTeamDevicesResult(object):
 
 ListTeamDevicesResult_validator = bv.Struct(ListTeamDevicesResult)
 
-class MemberAccess(object):
+class MemberAccess(bb.Struct):
     """
     Specify access type a member should have when joined to a group.
 
@@ -7731,6 +8099,9 @@ class MemberAccess(object):
         self._access_type_value = None
         self._access_type_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MemberAccess, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'MemberAccess(user={!r}, access_type={!r})'.format(
             self._user_value,
@@ -7739,7 +8110,7 @@ class MemberAccess(object):
 
 MemberAccess_validator = bv.Struct(MemberAccess)
 
-class MemberAddArg(object):
+class MemberAddArg(bb.Struct):
     """
     :ivar member_given_name: Member's first name.
     :ivar member_surname: Member's last name.
@@ -7750,6 +8121,7 @@ class MemberAddArg(object):
         send_welcome_email is false, no email invitation will be sent to the
         user. This may be useful for apps using single sign-on (SSO) flows for
         onboarding that want to handle announcements themselves.
+    :ivar is_directory_restricted: Whether a user is directory restricted.
     """
 
     __slots__ = [
@@ -7767,6 +8139,8 @@ class MemberAddArg(object):
         '_send_welcome_email_present',
         '_role_value',
         '_role_present',
+        '_is_directory_restricted_value',
+        '_is_directory_restricted_present',
     ]
 
     _has_required_fields = True
@@ -7778,7 +8152,8 @@ class MemberAddArg(object):
                  member_external_id=None,
                  member_persistent_id=None,
                  send_welcome_email=None,
-                 role=None):
+                 role=None,
+                 is_directory_restricted=None):
         self._member_email_value = None
         self._member_email_present = False
         self._member_given_name_value = None
@@ -7793,6 +8168,8 @@ class MemberAddArg(object):
         self._send_welcome_email_present = False
         self._role_value = None
         self._role_present = False
+        self._is_directory_restricted_value = None
+        self._is_directory_restricted_present = False
         if member_email is not None:
             self.member_email = member_email
         if member_given_name is not None:
@@ -7807,6 +8184,8 @@ class MemberAddArg(object):
             self.send_welcome_email = send_welcome_email
         if role is not None:
             self.role = role
+        if is_directory_restricted is not None:
+            self.is_directory_restricted = is_directory_restricted
 
     @property
     def member_email(self):
@@ -7981,8 +8360,37 @@ class MemberAddArg(object):
         self._role_value = None
         self._role_present = False
 
+    @property
+    def is_directory_restricted(self):
+        """
+        Whether a user is directory restricted.
+
+        :rtype: bool
+        """
+        if self._is_directory_restricted_present:
+            return self._is_directory_restricted_value
+        else:
+            return None
+
+    @is_directory_restricted.setter
+    def is_directory_restricted(self, val):
+        if val is None:
+            del self.is_directory_restricted
+            return
+        val = self._is_directory_restricted_validator.validate(val)
+        self._is_directory_restricted_value = val
+        self._is_directory_restricted_present = True
+
+    @is_directory_restricted.deleter
+    def is_directory_restricted(self):
+        self._is_directory_restricted_value = None
+        self._is_directory_restricted_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MemberAddArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
-        return 'MemberAddArg(member_email={!r}, member_given_name={!r}, member_surname={!r}, member_external_id={!r}, member_persistent_id={!r}, send_welcome_email={!r}, role={!r})'.format(
+        return 'MemberAddArg(member_email={!r}, member_given_name={!r}, member_surname={!r}, member_external_id={!r}, member_persistent_id={!r}, send_welcome_email={!r}, role={!r}, is_directory_restricted={!r})'.format(
             self._member_email_value,
             self._member_given_name_value,
             self._member_surname_value,
@@ -7990,6 +8398,7 @@ class MemberAddArg(object):
             self._member_persistent_id_value,
             self._send_welcome_email_value,
             self._role_value,
+            self._is_directory_restricted_value,
         )
 
 MemberAddArg_validator = bv.Struct(MemberAddArg)
@@ -8379,12 +8788,15 @@ class MemberAddResult(bb.Union):
             raise AttributeError("tag 'user_creation_failed' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MemberAddResult, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'MemberAddResult(%r, %r)' % (self._tag, self._value)
 
 MemberAddResult_validator = bv.Union(MemberAddResult)
 
-class MemberDevices(object):
+class MemberDevices(bb.Struct):
     """
     Information on devices of a team's member.
 
@@ -8530,6 +8942,9 @@ class MemberDevices(object):
         self._mobile_clients_value = None
         self._mobile_clients_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MemberDevices, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'MemberDevices(team_member_id={!r}, web_sessions={!r}, desktop_clients={!r}, mobile_clients={!r})'.format(
             self._team_member_id_value,
@@ -8540,7 +8955,7 @@ class MemberDevices(object):
 
 MemberDevices_validator = bv.Struct(MemberDevices)
 
-class MemberLinkedApps(object):
+class MemberLinkedApps(bb.Struct):
     """
     Information on linked applications of a team member.
 
@@ -8616,6 +9031,9 @@ class MemberLinkedApps(object):
         self._linked_api_apps_value = None
         self._linked_api_apps_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MemberLinkedApps, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'MemberLinkedApps(team_member_id={!r}, linked_api_apps={!r})'.format(
             self._team_member_id_value,
@@ -8624,7 +9042,7 @@ class MemberLinkedApps(object):
 
 MemberLinkedApps_validator = bv.Struct(MemberLinkedApps)
 
-class MemberProfile(object):
+class MemberProfile(bb.Struct):
     """
     Basic member profile.
 
@@ -8645,6 +9063,8 @@ class MemberProfile(object):
         team.
     :ivar persistent_id: Persistent ID that a team can attach to the user. The
         persistent ID is unique ID to be used for SAML authentication.
+    :ivar is_directory_restricted: Whether the user is a directory restricted
+        user.
     """
 
     __slots__ = [
@@ -8668,6 +9088,8 @@ class MemberProfile(object):
         '_joined_on_present',
         '_persistent_id_value',
         '_persistent_id_present',
+        '_is_directory_restricted_value',
+        '_is_directory_restricted_present',
     ]
 
     _has_required_fields = True
@@ -8682,7 +9104,8 @@ class MemberProfile(object):
                  external_id=None,
                  account_id=None,
                  joined_on=None,
-                 persistent_id=None):
+                 persistent_id=None,
+                 is_directory_restricted=None):
         self._team_member_id_value = None
         self._team_member_id_present = False
         self._external_id_value = None
@@ -8703,6 +9126,8 @@ class MemberProfile(object):
         self._joined_on_present = False
         self._persistent_id_value = None
         self._persistent_id_present = False
+        self._is_directory_restricted_value = None
+        self._is_directory_restricted_present = False
         if team_member_id is not None:
             self.team_member_id = team_member_id
         if external_id is not None:
@@ -8723,6 +9148,8 @@ class MemberProfile(object):
             self.joined_on = joined_on
         if persistent_id is not None:
             self.persistent_id = persistent_id
+        if is_directory_restricted is not None:
+            self.is_directory_restricted = is_directory_restricted
 
     @property
     def team_member_id(self):
@@ -8875,7 +9302,7 @@ class MemberProfile(object):
         """
         Representations for a person's name.
 
-        :rtype: users.Name_validator
+        :rtype: users.Name
         """
         if self._name_present:
             return self._name_value
@@ -8970,8 +9397,37 @@ class MemberProfile(object):
         self._persistent_id_value = None
         self._persistent_id_present = False
 
+    @property
+    def is_directory_restricted(self):
+        """
+        Whether the user is a directory restricted user.
+
+        :rtype: bool
+        """
+        if self._is_directory_restricted_present:
+            return self._is_directory_restricted_value
+        else:
+            return None
+
+    @is_directory_restricted.setter
+    def is_directory_restricted(self, val):
+        if val is None:
+            del self.is_directory_restricted
+            return
+        val = self._is_directory_restricted_validator.validate(val)
+        self._is_directory_restricted_value = val
+        self._is_directory_restricted_present = True
+
+    @is_directory_restricted.deleter
+    def is_directory_restricted(self):
+        self._is_directory_restricted_value = None
+        self._is_directory_restricted_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MemberProfile, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
-        return 'MemberProfile(team_member_id={!r}, email={!r}, email_verified={!r}, status={!r}, name={!r}, membership_type={!r}, external_id={!r}, account_id={!r}, joined_on={!r}, persistent_id={!r})'.format(
+        return 'MemberProfile(team_member_id={!r}, email={!r}, email_verified={!r}, status={!r}, name={!r}, membership_type={!r}, external_id={!r}, account_id={!r}, joined_on={!r}, persistent_id={!r}, is_directory_restricted={!r})'.format(
             self._team_member_id_value,
             self._email_value,
             self._email_verified_value,
@@ -8982,6 +9438,7 @@ class MemberProfile(object):
             self._account_id_value,
             self._joined_on_value,
             self._persistent_id_value,
+            self._is_directory_restricted_value,
         )
 
 MemberProfile_validator = bv.Struct(MemberProfile)
@@ -9011,6 +9468,9 @@ class UserSelectorError(bb.Union):
         """
         return self._tag == 'user_not_found'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(UserSelectorError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'UserSelectorError(%r, %r)' % (self._tag, self._value)
 
@@ -9036,12 +9496,15 @@ class MemberSelectorError(UserSelectorError):
         """
         return self._tag == 'user_not_in_team'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MemberSelectorError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'MemberSelectorError(%r, %r)' % (self._tag, self._value)
 
 MemberSelectorError_validator = bv.Union(MemberSelectorError)
 
-class MembersAddArg(object):
+class MembersAddArg(bb.Struct):
     """
     :ivar new_members: Details of new members to be added to the team.
     :ivar force_async: Whether to force the add to happen asynchronously.
@@ -9114,6 +9577,9 @@ class MembersAddArg(object):
         self._force_async_value = None
         self._force_async_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembersAddArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'MembersAddArg(new_members={!r}, force_async={!r})'.format(
             self._new_members_value,
@@ -9122,7 +9588,7 @@ class MembersAddArg(object):
 
 MembersAddArg_validator = bv.Struct(MembersAddArg)
 
-class MembersAddJobStatus(async.PollResultBase):
+class MembersAddJobStatus(async_.PollResultBase):
     """
     This class acts as a tagged union. Only one of the ``is_*`` methods will
     return true. To get the associated value of a tag (if one exists), use the
@@ -9202,12 +9668,15 @@ class MembersAddJobStatus(async.PollResultBase):
             raise AttributeError("tag 'failed' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembersAddJobStatus, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'MembersAddJobStatus(%r, %r)' % (self._tag, self._value)
 
 MembersAddJobStatus_validator = bv.Union(MembersAddJobStatus)
 
-class MembersAddLaunch(async.LaunchResultBase):
+class MembersAddLaunch(async_.LaunchResultBase):
     """
     This class acts as a tagged union. Only one of the ``is_*`` methods will
     return true. To get the associated value of a tag (if one exists), use the
@@ -9243,46 +9712,40 @@ class MembersAddLaunch(async.LaunchResultBase):
             raise AttributeError("tag 'complete' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembersAddLaunch, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'MembersAddLaunch(%r, %r)' % (self._tag, self._value)
 
 MembersAddLaunch_validator = bv.Union(MembersAddLaunch)
 
-class MembersDeactivateArg(object):
+class MembersDeactivateBaseArg(bb.Struct):
     """
     Exactly one of team_member_id, email, or external_id must be provided to
     identify the user account.
 
-    :ivar user: Identity of user to remove/suspend.
-    :ivar wipe_data: If provided, controls if the user's data will be deleted on
-        their linked devices.
+    :ivar user: Identity of user to remove/suspend/have their files moved.
     """
 
     __slots__ = [
         '_user_value',
         '_user_present',
-        '_wipe_data_value',
-        '_wipe_data_present',
     ]
 
     _has_required_fields = True
 
     def __init__(self,
-                 user=None,
-                 wipe_data=None):
+                 user=None):
         self._user_value = None
         self._user_present = False
-        self._wipe_data_value = None
-        self._wipe_data_present = False
         if user is not None:
             self.user = user
-        if wipe_data is not None:
-            self.wipe_data = wipe_data
 
     @property
     def user(self):
         """
-        Identity of user to remove/suspend.
+        Identity of user to remove/suspend/have their files moved.
 
         :rtype: UserSelectorArg
         """
@@ -9301,6 +9764,127 @@ class MembersDeactivateArg(object):
     def user(self):
         self._user_value = None
         self._user_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembersDeactivateBaseArg, self)._process_custom_annotations(annotation_type, processor)
+
+    def __repr__(self):
+        return 'MembersDeactivateBaseArg(user={!r})'.format(
+            self._user_value,
+        )
+
+MembersDeactivateBaseArg_validator = bv.Struct(MembersDeactivateBaseArg)
+
+class MembersDataTransferArg(MembersDeactivateBaseArg):
+    """
+    :ivar transfer_dest_id: Files from the deleted member account will be
+        transferred to this user.
+    :ivar transfer_admin_id: Errors during the transfer process will be sent via
+        email to this user.
+    """
+
+    __slots__ = [
+        '_transfer_dest_id_value',
+        '_transfer_dest_id_present',
+        '_transfer_admin_id_value',
+        '_transfer_admin_id_present',
+    ]
+
+    _has_required_fields = True
+
+    def __init__(self,
+                 user=None,
+                 transfer_dest_id=None,
+                 transfer_admin_id=None):
+        super(MembersDataTransferArg, self).__init__(user)
+        self._transfer_dest_id_value = None
+        self._transfer_dest_id_present = False
+        self._transfer_admin_id_value = None
+        self._transfer_admin_id_present = False
+        if transfer_dest_id is not None:
+            self.transfer_dest_id = transfer_dest_id
+        if transfer_admin_id is not None:
+            self.transfer_admin_id = transfer_admin_id
+
+    @property
+    def transfer_dest_id(self):
+        """
+        Files from the deleted member account will be transferred to this user.
+
+        :rtype: UserSelectorArg
+        """
+        if self._transfer_dest_id_present:
+            return self._transfer_dest_id_value
+        else:
+            raise AttributeError("missing required field 'transfer_dest_id'")
+
+    @transfer_dest_id.setter
+    def transfer_dest_id(self, val):
+        self._transfer_dest_id_validator.validate_type_only(val)
+        self._transfer_dest_id_value = val
+        self._transfer_dest_id_present = True
+
+    @transfer_dest_id.deleter
+    def transfer_dest_id(self):
+        self._transfer_dest_id_value = None
+        self._transfer_dest_id_present = False
+
+    @property
+    def transfer_admin_id(self):
+        """
+        Errors during the transfer process will be sent via email to this user.
+
+        :rtype: UserSelectorArg
+        """
+        if self._transfer_admin_id_present:
+            return self._transfer_admin_id_value
+        else:
+            raise AttributeError("missing required field 'transfer_admin_id'")
+
+    @transfer_admin_id.setter
+    def transfer_admin_id(self, val):
+        self._transfer_admin_id_validator.validate_type_only(val)
+        self._transfer_admin_id_value = val
+        self._transfer_admin_id_present = True
+
+    @transfer_admin_id.deleter
+    def transfer_admin_id(self):
+        self._transfer_admin_id_value = None
+        self._transfer_admin_id_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembersDataTransferArg, self)._process_custom_annotations(annotation_type, processor)
+
+    def __repr__(self):
+        return 'MembersDataTransferArg(user={!r}, transfer_dest_id={!r}, transfer_admin_id={!r})'.format(
+            self._user_value,
+            self._transfer_dest_id_value,
+            self._transfer_admin_id_value,
+        )
+
+MembersDataTransferArg_validator = bv.Struct(MembersDataTransferArg)
+
+class MembersDeactivateArg(MembersDeactivateBaseArg):
+    """
+    :ivar wipe_data: If provided, controls if the user's data will be deleted on
+        their linked devices.
+    """
+
+    __slots__ = [
+        '_wipe_data_value',
+        '_wipe_data_present',
+    ]
+
+    _has_required_fields = True
+
+    def __init__(self,
+                 user=None,
+                 wipe_data=None):
+        super(MembersDeactivateArg, self).__init__(user)
+        self._wipe_data_value = None
+        self._wipe_data_present = False
+        if wipe_data is not None:
+            self.wipe_data = wipe_data
 
     @property
     def wipe_data(self):
@@ -9325,6 +9909,9 @@ class MembersDeactivateArg(object):
     def wipe_data(self):
         self._wipe_data_value = None
         self._wipe_data_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembersDeactivateArg, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'MembersDeactivateArg(user={!r}, wipe_data={!r})'.format(
@@ -9365,12 +9952,15 @@ class MembersDeactivateError(UserSelectorError):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembersDeactivateError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'MembersDeactivateError(%r, %r)' % (self._tag, self._value)
 
 MembersDeactivateError_validator = bv.Union(MembersDeactivateError)
 
-class MembersGetInfoArgs(object):
+class MembersGetInfoArgs(bb.Struct):
     """
     :ivar members: List of team members.
     """
@@ -9412,6 +10002,9 @@ class MembersGetInfoArgs(object):
         self._members_value = None
         self._members_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembersGetInfoArgs, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'MembersGetInfoArgs(members={!r})'.format(
             self._members_value,
@@ -9437,6 +10030,9 @@ class MembersGetInfoError(bb.Union):
         :rtype: bool
         """
         return self._tag == 'other'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembersGetInfoError, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'MembersGetInfoError(%r, %r)' % (self._tag, self._value)
@@ -9526,12 +10122,15 @@ class MembersGetInfoItem(bb.Union):
             raise AttributeError("tag 'member_info' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembersGetInfoItem, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'MembersGetInfoItem(%r, %r)' % (self._tag, self._value)
 
 MembersGetInfoItem_validator = bv.Union(MembersGetInfoItem)
 
-class MembersListArg(object):
+class MembersListArg(bb.Struct):
     """
     :ivar limit: Number of results to return per call.
     :ivar include_removed: Whether to return removed members.
@@ -9563,7 +10162,7 @@ class MembersListArg(object):
         """
         Number of results to return per call.
 
-        :rtype: long
+        :rtype: int
         """
         if self._limit_present:
             return self._limit_value
@@ -9604,6 +10203,9 @@ class MembersListArg(object):
         self._include_removed_value = None
         self._include_removed_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembersListArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'MembersListArg(limit={!r}, include_removed={!r})'.format(
             self._limit_value,
@@ -9612,7 +10214,7 @@ class MembersListArg(object):
 
 MembersListArg_validator = bv.Struct(MembersListArg)
 
-class MembersListContinueArg(object):
+class MembersListContinueArg(bb.Struct):
     """
     :ivar cursor: Indicates from what point to get the next set of members.
     """
@@ -9654,6 +10256,9 @@ class MembersListContinueArg(object):
         self._cursor_value = None
         self._cursor_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembersListContinueArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'MembersListContinueArg(cursor={!r})'.format(
             self._cursor_value,
@@ -9692,6 +10297,9 @@ class MembersListContinueError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembersListContinueError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'MembersListContinueError(%r, %r)' % (self._tag, self._value)
 
@@ -9716,12 +10324,15 @@ class MembersListError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembersListError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'MembersListError(%r, %r)' % (self._tag, self._value)
 
 MembersListError_validator = bv.Union(MembersListError)
 
-class MembersListResult(object):
+class MembersListResult(bb.Struct):
     """
     :ivar members: List of team members.
     :ivar cursor: Pass the cursor into
@@ -9835,6 +10446,9 @@ class MembersListResult(object):
         self._has_more_value = None
         self._has_more_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembersListResult, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'MembersListResult(members={!r}, cursor={!r}, has_more={!r})'.format(
             self._members_value,
@@ -9844,7 +10458,7 @@ class MembersListResult(object):
 
 MembersListResult_validator = bv.Struct(MembersListResult)
 
-class MembersRecoverArg(object):
+class MembersRecoverArg(bb.Struct):
     """
     Exactly one of team_member_id, email, or external_id must be provided to
     identify the user account.
@@ -9888,6 +10502,9 @@ class MembersRecoverArg(object):
     def user(self):
         self._user_value = None
         self._user_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembersRecoverArg, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'MembersRecoverArg(user={!r})'.format(
@@ -9949,6 +10566,9 @@ class MembersRecoverError(UserSelectorError):
         :rtype: bool
         """
         return self._tag == 'other'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembersRecoverError, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'MembersRecoverError(%r, %r)' % (self._tag, self._value)
@@ -10081,6 +10701,9 @@ class MembersRemoveArg(MembersDeactivateArg):
         self._keep_account_value = None
         self._keep_account_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembersRemoveArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'MembersRemoveArg(user={!r}, wipe_data={!r}, transfer_dest_id={!r}, transfer_admin_id={!r}, keep_account={!r})'.format(
             self._user_value,
@@ -10092,14 +10715,12 @@ class MembersRemoveArg(MembersDeactivateArg):
 
 MembersRemoveArg_validator = bv.Struct(MembersRemoveArg)
 
-class MembersRemoveError(MembersDeactivateError):
+class MembersTransferFilesError(MembersDeactivateError):
     """
     This class acts as a tagged union. Only one of the ``is_*`` methods will
     return true. To get the associated value of a tag (if one exists), use the
     corresponding ``get_*`` method.
 
-    :ivar remove_last_admin: The user is the last admin of the team, so it
-        cannot be removed from it.
     :ivar removed_and_transfer_dest_should_differ: Expected removed user and
         transfer_dest user to be different.
     :ivar removed_and_transfer_admin_should_differ: Expected removed user and
@@ -10108,25 +10729,17 @@ class MembersRemoveError(MembersDeactivateError):
         transfer_dest_id.
     :ivar transfer_dest_user_not_in_team: The provided transfer_dest_id does not
         exist on this team.
-    :ivar transfer_admin_user_not_found: No matching user found for the argument
-        transfer_admin_id.
     :ivar transfer_admin_user_not_in_team: The provided transfer_admin_id does
         not exist on this team.
+    :ivar transfer_admin_user_not_found: No matching user found for the argument
+        transfer_admin_id.
     :ivar unspecified_transfer_admin_id: The transfer_admin_id argument must be
         provided when file transfer is requested.
     :ivar transfer_admin_is_not_admin: Specified transfer_admin user is not a
         team admin.
-    :ivar cannot_keep_account_and_transfer: Cannot keep account and transfer the
-        data to another user at the same time.
-    :ivar cannot_keep_account_and_delete_data: Cannot keep account and delete
-        the data at the same time. To keep the account the argument wipe_data
-        should be set to False.
-    :ivar email_address_too_long_to_be_disabled: The email address of the user
-        is too long to be disabled.
+    :ivar recipient_not_verified: The recipient user's email is not verified.
     """
 
-    # Attribute is overwritten below the class definition
-    remove_last_admin = None
     # Attribute is overwritten below the class definition
     removed_and_transfer_dest_should_differ = None
     # Attribute is overwritten below the class definition
@@ -10136,27 +10749,15 @@ class MembersRemoveError(MembersDeactivateError):
     # Attribute is overwritten below the class definition
     transfer_dest_user_not_in_team = None
     # Attribute is overwritten below the class definition
-    transfer_admin_user_not_found = None
-    # Attribute is overwritten below the class definition
     transfer_admin_user_not_in_team = None
+    # Attribute is overwritten below the class definition
+    transfer_admin_user_not_found = None
     # Attribute is overwritten below the class definition
     unspecified_transfer_admin_id = None
     # Attribute is overwritten below the class definition
     transfer_admin_is_not_admin = None
     # Attribute is overwritten below the class definition
-    cannot_keep_account_and_transfer = None
-    # Attribute is overwritten below the class definition
-    cannot_keep_account_and_delete_data = None
-    # Attribute is overwritten below the class definition
-    email_address_too_long_to_be_disabled = None
-
-    def is_remove_last_admin(self):
-        """
-        Check if the union tag is ``remove_last_admin``.
-
-        :rtype: bool
-        """
-        return self._tag == 'remove_last_admin'
+    recipient_not_verified = None
 
     def is_removed_and_transfer_dest_should_differ(self):
         """
@@ -10190,14 +10791,6 @@ class MembersRemoveError(MembersDeactivateError):
         """
         return self._tag == 'transfer_dest_user_not_in_team'
 
-    def is_transfer_admin_user_not_found(self):
-        """
-        Check if the union tag is ``transfer_admin_user_not_found``.
-
-        :rtype: bool
-        """
-        return self._tag == 'transfer_admin_user_not_found'
-
     def is_transfer_admin_user_not_in_team(self):
         """
         Check if the union tag is ``transfer_admin_user_not_in_team``.
@@ -10205,6 +10798,14 @@ class MembersRemoveError(MembersDeactivateError):
         :rtype: bool
         """
         return self._tag == 'transfer_admin_user_not_in_team'
+
+    def is_transfer_admin_user_not_found(self):
+        """
+        Check if the union tag is ``transfer_admin_user_not_found``.
+
+        :rtype: bool
+        """
+        return self._tag == 'transfer_admin_user_not_found'
 
     def is_unspecified_transfer_admin_id(self):
         """
@@ -10221,6 +10822,60 @@ class MembersRemoveError(MembersDeactivateError):
         :rtype: bool
         """
         return self._tag == 'transfer_admin_is_not_admin'
+
+    def is_recipient_not_verified(self):
+        """
+        Check if the union tag is ``recipient_not_verified``.
+
+        :rtype: bool
+        """
+        return self._tag == 'recipient_not_verified'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembersTransferFilesError, self)._process_custom_annotations(annotation_type, processor)
+
+    def __repr__(self):
+        return 'MembersTransferFilesError(%r, %r)' % (self._tag, self._value)
+
+MembersTransferFilesError_validator = bv.Union(MembersTransferFilesError)
+
+class MembersRemoveError(MembersTransferFilesError):
+    """
+    This class acts as a tagged union. Only one of the ``is_*`` methods will
+    return true. To get the associated value of a tag (if one exists), use the
+    corresponding ``get_*`` method.
+
+    :ivar remove_last_admin: The user is the last admin of the team, so it
+        cannot be removed from it.
+    :ivar cannot_keep_account_and_transfer: Cannot keep account and transfer the
+        data to another user at the same time.
+    :ivar cannot_keep_account_and_delete_data: Cannot keep account and delete
+        the data at the same time. To keep the account the argument wipe_data
+        should be set to False.
+    :ivar email_address_too_long_to_be_disabled: The email address of the user
+        is too long to be disabled.
+    :ivar cannot_keep_invited_user_account: Cannot keep account of an invited
+        user.
+    """
+
+    # Attribute is overwritten below the class definition
+    remove_last_admin = None
+    # Attribute is overwritten below the class definition
+    cannot_keep_account_and_transfer = None
+    # Attribute is overwritten below the class definition
+    cannot_keep_account_and_delete_data = None
+    # Attribute is overwritten below the class definition
+    email_address_too_long_to_be_disabled = None
+    # Attribute is overwritten below the class definition
+    cannot_keep_invited_user_account = None
+
+    def is_remove_last_admin(self):
+        """
+        Check if the union tag is ``remove_last_admin``.
+
+        :rtype: bool
+        """
+        return self._tag == 'remove_last_admin'
 
     def is_cannot_keep_account_and_transfer(self):
         """
@@ -10246,6 +10901,17 @@ class MembersRemoveError(MembersDeactivateError):
         """
         return self._tag == 'email_address_too_long_to_be_disabled'
 
+    def is_cannot_keep_invited_user_account(self):
+        """
+        Check if the union tag is ``cannot_keep_invited_user_account``.
+
+        :rtype: bool
+        """
+        return self._tag == 'cannot_keep_invited_user_account'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembersRemoveError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'MembersRemoveError(%r, %r)' % (self._tag, self._value)
 
@@ -10270,12 +10936,15 @@ class MembersSendWelcomeError(MemberSelectorError):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembersSendWelcomeError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'MembersSendWelcomeError(%r, %r)' % (self._tag, self._value)
 
 MembersSendWelcomeError_validator = bv.Union(MembersSendWelcomeError)
 
-class MembersSetPermissionsArg(object):
+class MembersSetPermissionsArg(bb.Struct):
     """
     Exactly one of team_member_id, email, or external_id must be provided to
     identify the user account.
@@ -10351,6 +11020,9 @@ class MembersSetPermissionsArg(object):
         self._new_role_value = None
         self._new_role_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembersSetPermissionsArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'MembersSetPermissionsArg(user={!r}, new_role={!r})'.format(
             self._user_value,
@@ -10424,12 +11096,15 @@ class MembersSetPermissionsError(UserSelectorError):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembersSetPermissionsError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'MembersSetPermissionsError(%r, %r)' % (self._tag, self._value)
 
 MembersSetPermissionsError_validator = bv.Union(MembersSetPermissionsError)
 
-class MembersSetPermissionsResult(object):
+class MembersSetPermissionsResult(bb.Struct):
     """
     :ivar team_member_id: The member ID of the user to which the change was
         applied.
@@ -10503,6 +11178,9 @@ class MembersSetPermissionsResult(object):
         self._role_value = None
         self._role_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembersSetPermissionsResult, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'MembersSetPermissionsResult(team_member_id={!r}, role={!r})'.format(
             self._team_member_id_value,
@@ -10511,7 +11189,7 @@ class MembersSetPermissionsResult(object):
 
 MembersSetPermissionsResult_validator = bv.Struct(MembersSetPermissionsResult)
 
-class MembersSetProfileArg(object):
+class MembersSetProfileArg(bb.Struct):
     """
     Exactly one of team_member_id, email, or external_id must be provided to
     identify the user account. At least one of new_email, new_external_id,
@@ -10524,6 +11202,8 @@ class MembersSetProfileArg(object):
     :ivar new_surname: New surname for member.
     :ivar new_persistent_id: New persistent ID. This field only available to
         teams using persistent ID SAML configuration.
+    :ivar new_is_directory_restricted: New value for whether the user is a
+        directory restricted user.
     """
 
     __slots__ = [
@@ -10539,6 +11219,8 @@ class MembersSetProfileArg(object):
         '_new_surname_present',
         '_new_persistent_id_value',
         '_new_persistent_id_present',
+        '_new_is_directory_restricted_value',
+        '_new_is_directory_restricted_present',
     ]
 
     _has_required_fields = True
@@ -10549,7 +11231,8 @@ class MembersSetProfileArg(object):
                  new_external_id=None,
                  new_given_name=None,
                  new_surname=None,
-                 new_persistent_id=None):
+                 new_persistent_id=None,
+                 new_is_directory_restricted=None):
         self._user_value = None
         self._user_present = False
         self._new_email_value = None
@@ -10562,6 +11245,8 @@ class MembersSetProfileArg(object):
         self._new_surname_present = False
         self._new_persistent_id_value = None
         self._new_persistent_id_present = False
+        self._new_is_directory_restricted_value = None
+        self._new_is_directory_restricted_present = False
         if user is not None:
             self.user = user
         if new_email is not None:
@@ -10574,6 +11259,8 @@ class MembersSetProfileArg(object):
             self.new_surname = new_surname
         if new_persistent_id is not None:
             self.new_persistent_id = new_persistent_id
+        if new_is_directory_restricted is not None:
+            self.new_is_directory_restricted = new_is_directory_restricted
 
     @property
     def user(self):
@@ -10729,14 +11416,44 @@ class MembersSetProfileArg(object):
         self._new_persistent_id_value = None
         self._new_persistent_id_present = False
 
+    @property
+    def new_is_directory_restricted(self):
+        """
+        New value for whether the user is a directory restricted user.
+
+        :rtype: bool
+        """
+        if self._new_is_directory_restricted_present:
+            return self._new_is_directory_restricted_value
+        else:
+            return None
+
+    @new_is_directory_restricted.setter
+    def new_is_directory_restricted(self, val):
+        if val is None:
+            del self.new_is_directory_restricted
+            return
+        val = self._new_is_directory_restricted_validator.validate(val)
+        self._new_is_directory_restricted_value = val
+        self._new_is_directory_restricted_present = True
+
+    @new_is_directory_restricted.deleter
+    def new_is_directory_restricted(self):
+        self._new_is_directory_restricted_value = None
+        self._new_is_directory_restricted_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembersSetProfileArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
-        return 'MembersSetProfileArg(user={!r}, new_email={!r}, new_external_id={!r}, new_given_name={!r}, new_surname={!r}, new_persistent_id={!r})'.format(
+        return 'MembersSetProfileArg(user={!r}, new_email={!r}, new_external_id={!r}, new_given_name={!r}, new_surname={!r}, new_persistent_id={!r}, new_is_directory_restricted={!r})'.format(
             self._user_value,
             self._new_email_value,
             self._new_external_id_value,
             self._new_given_name_value,
             self._new_surname_value,
             self._new_persistent_id_value,
+            self._new_is_directory_restricted_value,
         )
 
 MembersSetProfileArg_validator = bv.Struct(MembersSetProfileArg)
@@ -10762,6 +11479,8 @@ class MembersSetProfileError(MemberSelectorError):
         information.
     :ivar persistent_id_used_by_other_user: The persistent ID is already in use
         by another team member.
+    :ivar directory_restricted_off: Directory Restrictions option is not
+        available.
     """
 
     _catch_all = 'other'
@@ -10781,6 +11500,8 @@ class MembersSetProfileError(MemberSelectorError):
     persistent_id_disabled = None
     # Attribute is overwritten below the class definition
     persistent_id_used_by_other_user = None
+    # Attribute is overwritten below the class definition
+    directory_restricted_off = None
     # Attribute is overwritten below the class definition
     other = None
 
@@ -10848,6 +11569,14 @@ class MembersSetProfileError(MemberSelectorError):
         """
         return self._tag == 'persistent_id_used_by_other_user'
 
+    def is_directory_restricted_off(self):
+        """
+        Check if the union tag is ``directory_restricted_off``.
+
+        :rtype: bool
+        """
+        return self._tag == 'directory_restricted_off'
+
     def is_other(self):
         """
         Check if the union tag is ``other``.
@@ -10855,6 +11584,9 @@ class MembersSetProfileError(MemberSelectorError):
         :rtype: bool
         """
         return self._tag == 'other'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembersSetProfileError, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'MembersSetProfileError(%r, %r)' % (self._tag, self._value)
@@ -10906,12 +11638,80 @@ class MembersSuspendError(MembersDeactivateError):
         """
         return self._tag == 'team_license_limit'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembersSuspendError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'MembersSuspendError(%r, %r)' % (self._tag, self._value)
 
 MembersSuspendError_validator = bv.Union(MembersSuspendError)
 
-class MembersUnsuspendArg(object):
+class MembersTransferFormerMembersFilesError(MembersTransferFilesError):
+    """
+    This class acts as a tagged union. Only one of the ``is_*`` methods will
+    return true. To get the associated value of a tag (if one exists), use the
+    corresponding ``get_*`` method.
+
+    :ivar user_data_is_being_transferred: The user's data is being transferred.
+        Please wait some time before retrying.
+    :ivar user_not_removed: No matching removed user found for the argument
+        user.
+    :ivar user_data_cannot_be_transferred: User files aren't transferable
+        anymore.
+    :ivar user_data_already_transferred: User's data has already been
+        transferred to another user.
+    """
+
+    # Attribute is overwritten below the class definition
+    user_data_is_being_transferred = None
+    # Attribute is overwritten below the class definition
+    user_not_removed = None
+    # Attribute is overwritten below the class definition
+    user_data_cannot_be_transferred = None
+    # Attribute is overwritten below the class definition
+    user_data_already_transferred = None
+
+    def is_user_data_is_being_transferred(self):
+        """
+        Check if the union tag is ``user_data_is_being_transferred``.
+
+        :rtype: bool
+        """
+        return self._tag == 'user_data_is_being_transferred'
+
+    def is_user_not_removed(self):
+        """
+        Check if the union tag is ``user_not_removed``.
+
+        :rtype: bool
+        """
+        return self._tag == 'user_not_removed'
+
+    def is_user_data_cannot_be_transferred(self):
+        """
+        Check if the union tag is ``user_data_cannot_be_transferred``.
+
+        :rtype: bool
+        """
+        return self._tag == 'user_data_cannot_be_transferred'
+
+    def is_user_data_already_transferred(self):
+        """
+        Check if the union tag is ``user_data_already_transferred``.
+
+        :rtype: bool
+        """
+        return self._tag == 'user_data_already_transferred'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembersTransferFormerMembersFilesError, self)._process_custom_annotations(annotation_type, processor)
+
+    def __repr__(self):
+        return 'MembersTransferFormerMembersFilesError(%r, %r)' % (self._tag, self._value)
+
+MembersTransferFormerMembersFilesError_validator = bv.Union(MembersTransferFormerMembersFilesError)
+
+class MembersUnsuspendArg(bb.Struct):
     """
     Exactly one of team_member_id, email, or external_id must be provided to
     identify the user account.
@@ -10956,6 +11756,9 @@ class MembersUnsuspendArg(object):
         self._user_value = None
         self._user_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembersUnsuspendArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'MembersUnsuspendArg(user={!r})'.format(
             self._user_value,
@@ -10995,6 +11798,9 @@ class MembersUnsuspendError(MembersDeactivateError):
         :rtype: bool
         """
         return self._tag == 'team_license_limit'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembersUnsuspendError, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'MembersUnsuspendError(%r, %r)' % (self._tag, self._value)
@@ -11075,6 +11881,9 @@ class MobileClientPlatform(bb.Union):
         :rtype: bool
         """
         return self._tag == 'other'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MobileClientPlatform, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'MobileClientPlatform(%r, %r)' % (self._tag, self._value)
@@ -11268,6 +12077,9 @@ class MobileClientSession(DeviceSession):
         self._last_carrier_value = None
         self._last_carrier_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MobileClientSession, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'MobileClientSession(session_id={!r}, device_name={!r}, client_type={!r}, ip_address={!r}, country={!r}, created={!r}, updated={!r}, client_version={!r}, os_version={!r}, last_carrier={!r})'.format(
             self._session_id_value,
@@ -11284,15 +12096,15 @@ class MobileClientSession(DeviceSession):
 
 MobileClientSession_validator = bv.Struct(MobileClientSession)
 
-class NamespaceMetadata(object):
+class NamespaceMetadata(bb.Struct):
     """
     Properties of a namespace.
 
     :ivar name: The name of this namespace.
     :ivar namespace_id: The ID of this namespace.
     :ivar namespace_type: The type of this namespace.
-    :ivar team_member_id: If this is a team member folder, the ID of the team
-        member. Otherwise, this field is not present.
+    :ivar team_member_id: If this is a team member or app folder, the ID of the
+        owning team member. Otherwise, this field is not present.
     """
 
     __slots__ = [
@@ -11402,8 +12214,8 @@ class NamespaceMetadata(object):
     @property
     def team_member_id(self):
         """
-        If this is a team member folder, the ID of the team member. Otherwise,
-        this field is not present.
+        If this is a team member or app folder, the ID of the owning team
+        member. Otherwise, this field is not present.
 
         :rtype: str
         """
@@ -11425,6 +12237,9 @@ class NamespaceMetadata(object):
     def team_member_id(self):
         self._team_member_id_value = None
         self._team_member_id_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(NamespaceMetadata, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'NamespaceMetadata(name={!r}, namespace_id={!r}, namespace_type={!r}, team_member_id={!r})'.format(
@@ -11499,6 +12314,9 @@ class NamespaceType(bb.Union):
         :rtype: bool
         """
         return self._tag == 'other'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(NamespaceType, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'NamespaceType(%r, %r)' % (self._tag, self._value)
@@ -11591,29 +12409,41 @@ class RemoveCustomQuotaResult(bb.Union):
             raise AttributeError("tag 'invalid_user' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(RemoveCustomQuotaResult, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'RemoveCustomQuotaResult(%r, %r)' % (self._tag, self._value)
 
 RemoveCustomQuotaResult_validator = bv.Union(RemoveCustomQuotaResult)
 
-class RemovedStatus(object):
+class RemovedStatus(bb.Struct):
     """
     :ivar is_recoverable: True if the removed team member is recoverable.
+    :ivar is_disconnected: True if the team member's account was converted to
+        individual account.
     """
 
     __slots__ = [
         '_is_recoverable_value',
         '_is_recoverable_present',
+        '_is_disconnected_value',
+        '_is_disconnected_present',
     ]
 
     _has_required_fields = True
 
     def __init__(self,
-                 is_recoverable=None):
+                 is_recoverable=None,
+                 is_disconnected=None):
         self._is_recoverable_value = None
         self._is_recoverable_present = False
+        self._is_disconnected_value = None
+        self._is_disconnected_present = False
         if is_recoverable is not None:
             self.is_recoverable = is_recoverable
+        if is_disconnected is not None:
+            self.is_disconnected = is_disconnected
 
     @property
     def is_recoverable(self):
@@ -11638,9 +12468,36 @@ class RemovedStatus(object):
         self._is_recoverable_value = None
         self._is_recoverable_present = False
 
+    @property
+    def is_disconnected(self):
+        """
+        True if the team member's account was converted to individual account.
+
+        :rtype: bool
+        """
+        if self._is_disconnected_present:
+            return self._is_disconnected_value
+        else:
+            raise AttributeError("missing required field 'is_disconnected'")
+
+    @is_disconnected.setter
+    def is_disconnected(self, val):
+        val = self._is_disconnected_validator.validate(val)
+        self._is_disconnected_value = val
+        self._is_disconnected_present = True
+
+    @is_disconnected.deleter
+    def is_disconnected(self):
+        self._is_disconnected_value = None
+        self._is_disconnected_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(RemovedStatus, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
-        return 'RemovedStatus(is_recoverable={!r})'.format(
+        return 'RemovedStatus(is_recoverable={!r}, is_disconnected={!r})'.format(
             self._is_recoverable_value,
+            self._is_disconnected_value,
         )
 
 RemovedStatus_validator = bv.Struct(RemovedStatus)
@@ -11694,6 +12551,9 @@ class RevokeDesktopClientArg(DeviceSessionArg):
     def delete_on_unlink(self):
         self._delete_on_unlink_value = None
         self._delete_on_unlink_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(RevokeDesktopClientArg, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'RevokeDesktopClientArg(session_id={!r}, team_member_id={!r}, delete_on_unlink={!r})'.format(
@@ -11810,12 +12670,15 @@ class RevokeDeviceSessionArg(bb.Union):
             raise AttributeError("tag 'mobile_client' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(RevokeDeviceSessionArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'RevokeDeviceSessionArg(%r, %r)' % (self._tag, self._value)
 
 RevokeDeviceSessionArg_validator = bv.Union(RevokeDeviceSessionArg)
 
-class RevokeDeviceSessionBatchArg(object):
+class RevokeDeviceSessionBatchArg(bb.Struct):
 
     __slots__ = [
         '_revoke_devices_value',
@@ -11852,6 +12715,9 @@ class RevokeDeviceSessionBatchArg(object):
         self._revoke_devices_value = None
         self._revoke_devices_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(RevokeDeviceSessionBatchArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'RevokeDeviceSessionBatchArg(revoke_devices={!r})'.format(
             self._revoke_devices_value,
@@ -11878,12 +12744,15 @@ class RevokeDeviceSessionBatchError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(RevokeDeviceSessionBatchError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'RevokeDeviceSessionBatchError(%r, %r)' % (self._tag, self._value)
 
 RevokeDeviceSessionBatchError_validator = bv.Union(RevokeDeviceSessionBatchError)
 
-class RevokeDeviceSessionBatchResult(object):
+class RevokeDeviceSessionBatchResult(bb.Struct):
 
     __slots__ = [
         '_revoke_devices_status_value',
@@ -11919,6 +12788,9 @@ class RevokeDeviceSessionBatchResult(object):
     def revoke_devices_status(self):
         self._revoke_devices_status_value = None
         self._revoke_devices_status_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(RevokeDeviceSessionBatchResult, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'RevokeDeviceSessionBatchResult(revoke_devices_status={!r})'.format(
@@ -11969,12 +12841,15 @@ class RevokeDeviceSessionError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(RevokeDeviceSessionError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'RevokeDeviceSessionError(%r, %r)' % (self._tag, self._value)
 
 RevokeDeviceSessionError_validator = bv.Union(RevokeDeviceSessionError)
 
-class RevokeDeviceSessionStatus(object):
+class RevokeDeviceSessionStatus(bb.Struct):
     """
     :ivar success: Result of the revoking request.
     :ivar error_type: The error cause in case of a failure.
@@ -12050,6 +12925,9 @@ class RevokeDeviceSessionStatus(object):
         self._error_type_value = None
         self._error_type_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(RevokeDeviceSessionStatus, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'RevokeDeviceSessionStatus(success={!r}, error_type={!r})'.format(
             self._success_value,
@@ -12058,7 +12936,7 @@ class RevokeDeviceSessionStatus(object):
 
 RevokeDeviceSessionStatus_validator = bv.Struct(RevokeDeviceSessionStatus)
 
-class RevokeLinkedApiAppArg(object):
+class RevokeLinkedApiAppArg(bb.Struct):
     """
     :ivar app_id: The application's unique id.
     :ivar team_member_id: The unique id of the member owning the device.
@@ -12164,6 +13042,9 @@ class RevokeLinkedApiAppArg(object):
         self._keep_app_folder_value = None
         self._keep_app_folder_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(RevokeLinkedApiAppArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'RevokeLinkedApiAppArg(app_id={!r}, team_member_id={!r}, keep_app_folder={!r})'.format(
             self._app_id_value,
@@ -12173,7 +13054,7 @@ class RevokeLinkedApiAppArg(object):
 
 RevokeLinkedApiAppArg_validator = bv.Struct(RevokeLinkedApiAppArg)
 
-class RevokeLinkedApiAppBatchArg(object):
+class RevokeLinkedApiAppBatchArg(bb.Struct):
 
     __slots__ = [
         '_revoke_linked_app_value',
@@ -12210,6 +13091,9 @@ class RevokeLinkedApiAppBatchArg(object):
         self._revoke_linked_app_value = None
         self._revoke_linked_app_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(RevokeLinkedApiAppBatchArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'RevokeLinkedApiAppBatchArg(revoke_linked_app={!r})'.format(
             self._revoke_linked_app_value,
@@ -12239,12 +13123,15 @@ class RevokeLinkedAppBatchError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(RevokeLinkedAppBatchError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'RevokeLinkedAppBatchError(%r, %r)' % (self._tag, self._value)
 
 RevokeLinkedAppBatchError_validator = bv.Union(RevokeLinkedAppBatchError)
 
-class RevokeLinkedAppBatchResult(object):
+class RevokeLinkedAppBatchResult(bb.Struct):
 
     __slots__ = [
         '_revoke_linked_app_status_value',
@@ -12280,6 +13167,9 @@ class RevokeLinkedAppBatchResult(object):
     def revoke_linked_app_status(self):
         self._revoke_linked_app_status_value = None
         self._revoke_linked_app_status_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(RevokeLinkedAppBatchResult, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'RevokeLinkedAppBatchResult(revoke_linked_app_status={!r})'.format(
@@ -12333,12 +13223,15 @@ class RevokeLinkedAppError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(RevokeLinkedAppError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'RevokeLinkedAppError(%r, %r)' % (self._tag, self._value)
 
 RevokeLinkedAppError_validator = bv.Union(RevokeLinkedAppError)
 
-class RevokeLinkedAppStatus(object):
+class RevokeLinkedAppStatus(bb.Struct):
     """
     :ivar success: Result of the revoking request.
     :ivar error_type: The error cause in case of a failure.
@@ -12414,6 +13307,9 @@ class RevokeLinkedAppStatus(object):
         self._error_type_value = None
         self._error_type_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(RevokeLinkedAppStatus, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'RevokeLinkedAppStatus(success={!r}, error_type={!r})'.format(
             self._success_value,
@@ -12422,7 +13318,7 @@ class RevokeLinkedAppStatus(object):
 
 RevokeLinkedAppStatus_validator = bv.Struct(RevokeLinkedAppStatus)
 
-class SetCustomQuotaArg(object):
+class SetCustomQuotaArg(bb.Struct):
     """
     :ivar users_and_quotas: List of users and their custom quotas.
     """
@@ -12464,6 +13360,9 @@ class SetCustomQuotaArg(object):
         self._users_and_quotas_value = None
         self._users_and_quotas_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(SetCustomQuotaArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'SetCustomQuotaArg(users_and_quotas={!r})'.format(
             self._users_and_quotas_value,
@@ -12494,12 +13393,15 @@ class SetCustomQuotaError(CustomQuotaError):
         """
         return self._tag == 'some_users_are_excluded'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(SetCustomQuotaError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'SetCustomQuotaError(%r, %r)' % (self._tag, self._value)
 
 SetCustomQuotaError_validator = bv.Union(SetCustomQuotaError)
 
-class StorageBucket(object):
+class StorageBucket(bb.Struct):
     """
     Describes the number of users in a specific storage bucket.
 
@@ -12560,7 +13462,7 @@ class StorageBucket(object):
         The number of people whose storage is in the range of this storage
         bucket.
 
-        :rtype: long
+        :rtype: int
         """
         if self._users_present:
             return self._users_value
@@ -12577,6 +13479,9 @@ class StorageBucket(object):
     def users(self):
         self._users_value = None
         self._users_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(StorageBucket, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'StorageBucket(bucket={!r}, users={!r})'.format(
@@ -12629,6 +13534,9 @@ class TeamFolderAccessError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamFolderAccessError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TeamFolderAccessError(%r, %r)' % (self._tag, self._value)
 
@@ -12641,12 +13549,15 @@ class TeamFolderActivateError(BaseTeamFolderError):
     corresponding ``get_*`` method.
     """
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamFolderActivateError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TeamFolderActivateError(%r, %r)' % (self._tag, self._value)
 
 TeamFolderActivateError_validator = bv.Union(TeamFolderActivateError)
 
-class TeamFolderIdArg(object):
+class TeamFolderIdArg(bb.Struct):
     """
     :ivar team_folder_id: The ID of the team folder.
     """
@@ -12687,6 +13598,9 @@ class TeamFolderIdArg(object):
     def team_folder_id(self):
         self._team_folder_id_value = None
         self._team_folder_id_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamFolderIdArg, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'TeamFolderIdArg(team_folder_id={!r})'.format(
@@ -12739,6 +13653,9 @@ class TeamFolderArchiveArg(TeamFolderIdArg):
         self._force_async_off_value = None
         self._force_async_off_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamFolderArchiveArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TeamFolderArchiveArg(team_folder_id={!r}, force_async_off={!r})'.format(
             self._team_folder_id_value,
@@ -12754,12 +13671,15 @@ class TeamFolderArchiveError(BaseTeamFolderError):
     corresponding ``get_*`` method.
     """
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamFolderArchiveError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TeamFolderArchiveError(%r, %r)' % (self._tag, self._value)
 
 TeamFolderArchiveError_validator = bv.Union(TeamFolderArchiveError)
 
-class TeamFolderArchiveJobStatus(async.PollResultBase):
+class TeamFolderArchiveJobStatus(async_.PollResultBase):
     """
     This class acts as a tagged union. Only one of the ``is_*`` methods will
     return true. To get the associated value of a tag (if one exists), use the
@@ -12836,12 +13756,15 @@ class TeamFolderArchiveJobStatus(async.PollResultBase):
             raise AttributeError("tag 'failed' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamFolderArchiveJobStatus, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TeamFolderArchiveJobStatus(%r, %r)' % (self._tag, self._value)
 
 TeamFolderArchiveJobStatus_validator = bv.Union(TeamFolderArchiveJobStatus)
 
-class TeamFolderArchiveLaunch(async.LaunchResultBase):
+class TeamFolderArchiveLaunch(async_.LaunchResultBase):
     """
     This class acts as a tagged union. Only one of the ``is_*`` methods will
     return true. To get the associated value of a tag (if one exists), use the
@@ -12877,29 +13800,41 @@ class TeamFolderArchiveLaunch(async.LaunchResultBase):
             raise AttributeError("tag 'complete' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamFolderArchiveLaunch, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TeamFolderArchiveLaunch(%r, %r)' % (self._tag, self._value)
 
 TeamFolderArchiveLaunch_validator = bv.Union(TeamFolderArchiveLaunch)
 
-class TeamFolderCreateArg(object):
+class TeamFolderCreateArg(bb.Struct):
     """
     :ivar name: Name for the new team folder.
+    :ivar sync_setting: The sync setting to apply to this team folder. Only
+        permitted if the team has team selective sync enabled.
     """
 
     __slots__ = [
         '_name_value',
         '_name_present',
+        '_sync_setting_value',
+        '_sync_setting_present',
     ]
 
     _has_required_fields = True
 
     def __init__(self,
-                 name=None):
+                 name=None,
+                 sync_setting=None):
         self._name_value = None
         self._name_present = False
+        self._sync_setting_value = None
+        self._sync_setting_present = False
         if name is not None:
             self.name = name
+        if sync_setting is not None:
+            self.sync_setting = sync_setting
 
     @property
     def name(self):
@@ -12924,9 +13859,40 @@ class TeamFolderCreateArg(object):
         self._name_value = None
         self._name_present = False
 
+    @property
+    def sync_setting(self):
+        """
+        The sync setting to apply to this team folder. Only permitted if the
+        team has team selective sync enabled.
+
+        :rtype: files.SyncSettingArg
+        """
+        if self._sync_setting_present:
+            return self._sync_setting_value
+        else:
+            return None
+
+    @sync_setting.setter
+    def sync_setting(self, val):
+        if val is None:
+            del self.sync_setting
+            return
+        self._sync_setting_validator.validate_type_only(val)
+        self._sync_setting_value = val
+        self._sync_setting_present = True
+
+    @sync_setting.deleter
+    def sync_setting(self):
+        self._sync_setting_value = None
+        self._sync_setting_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamFolderCreateArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
-        return 'TeamFolderCreateArg(name={!r})'.format(
+        return 'TeamFolderCreateArg(name={!r}, sync_setting={!r})'.format(
             self._name_value,
+            self._sync_setting_value,
         )
 
 TeamFolderCreateArg_validator = bv.Struct(TeamFolderCreateArg)
@@ -12942,6 +13908,8 @@ class TeamFolderCreateError(bb.Union):
         provided name.
     :ivar folder_name_reserved: The provided name cannot be used because it is
         reserved.
+    :ivar SyncSettingsError sync_settings_error: An error occurred setting the
+        sync settings.
     """
 
     _catch_all = 'other'
@@ -12953,6 +13921,17 @@ class TeamFolderCreateError(bb.Union):
     folder_name_reserved = None
     # Attribute is overwritten below the class definition
     other = None
+
+    @classmethod
+    def sync_settings_error(cls, val):
+        """
+        Create an instance of this class set to the ``sync_settings_error`` tag
+        with value ``val``.
+
+        :param files.SyncSettingsError val:
+        :rtype: TeamFolderCreateError
+        """
+        return cls('sync_settings_error', val)
 
     def is_invalid_folder_name(self):
         """
@@ -12978,6 +13957,14 @@ class TeamFolderCreateError(bb.Union):
         """
         return self._tag == 'folder_name_reserved'
 
+    def is_sync_settings_error(self):
+        """
+        Check if the union tag is ``sync_settings_error``.
+
+        :rtype: bool
+        """
+        return self._tag == 'sync_settings_error'
+
     def is_other(self):
         """
         Check if the union tag is ``other``.
@@ -12985,6 +13972,21 @@ class TeamFolderCreateError(bb.Union):
         :rtype: bool
         """
         return self._tag == 'other'
+
+    def get_sync_settings_error(self):
+        """
+        An error occurred setting the sync settings.
+
+        Only call this if :meth:`is_sync_settings_error` is true.
+
+        :rtype: files.SyncSettingsError
+        """
+        if not self.is_sync_settings_error():
+            raise AttributeError("tag 'sync_settings_error' not set")
+        return self._value
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamFolderCreateError, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'TeamFolderCreateError(%r, %r)' % (self._tag, self._value)
@@ -13069,12 +14071,15 @@ class TeamFolderGetInfoItem(bb.Union):
             raise AttributeError("tag 'team_folder_metadata' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamFolderGetInfoItem, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TeamFolderGetInfoItem(%r, %r)' % (self._tag, self._value)
 
 TeamFolderGetInfoItem_validator = bv.Union(TeamFolderGetInfoItem)
 
-class TeamFolderIdListArg(object):
+class TeamFolderIdListArg(bb.Struct):
     """
     :ivar team_folder_ids: The list of team folder IDs.
     """
@@ -13115,6 +14120,9 @@ class TeamFolderIdListArg(object):
     def team_folder_ids(self):
         self._team_folder_ids_value = None
         self._team_folder_ids_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamFolderIdListArg, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'TeamFolderIdListArg(team_folder_ids={!r})'.format(
@@ -13177,12 +14185,15 @@ class TeamFolderInvalidStatusError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamFolderInvalidStatusError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TeamFolderInvalidStatusError(%r, %r)' % (self._tag, self._value)
 
 TeamFolderInvalidStatusError_validator = bv.Union(TeamFolderInvalidStatusError)
 
-class TeamFolderListArg(object):
+class TeamFolderListArg(bb.Struct):
     """
     :ivar limit: The maximum number of results to return per request.
     """
@@ -13206,7 +14217,7 @@ class TeamFolderListArg(object):
         """
         The maximum number of results to return per request.
 
-        :rtype: long
+        :rtype: int
         """
         if self._limit_present:
             return self._limit_value
@@ -13224,6 +14235,9 @@ class TeamFolderListArg(object):
         self._limit_value = None
         self._limit_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamFolderListArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TeamFolderListArg(limit={!r})'.format(
             self._limit_value,
@@ -13231,7 +14245,7 @@ class TeamFolderListArg(object):
 
 TeamFolderListArg_validator = bv.Struct(TeamFolderListArg)
 
-class TeamFolderListContinueArg(object):
+class TeamFolderListContinueArg(bb.Struct):
     """
     :ivar cursor: Indicates from what point to get the next set of team folders.
     """
@@ -13273,6 +14287,9 @@ class TeamFolderListContinueArg(object):
         self._cursor_value = None
         self._cursor_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamFolderListContinueArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TeamFolderListContinueArg(cursor={!r})'.format(
             self._cursor_value,
@@ -13311,12 +14328,15 @@ class TeamFolderListContinueError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamFolderListContinueError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TeamFolderListContinueError(%r, %r)' % (self._tag, self._value)
 
 TeamFolderListContinueError_validator = bv.Union(TeamFolderListContinueError)
 
-class TeamFolderListError(object):
+class TeamFolderListError(bb.Struct):
 
     __slots__ = [
         '_access_error_value',
@@ -13353,6 +14373,9 @@ class TeamFolderListError(object):
         self._access_error_value = None
         self._access_error_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamFolderListError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TeamFolderListError(access_error={!r})'.format(
             self._access_error_value,
@@ -13360,7 +14383,7 @@ class TeamFolderListError(object):
 
 TeamFolderListError_validator = bv.Struct(TeamFolderListError)
 
-class TeamFolderListResult(object):
+class TeamFolderListResult(bb.Struct):
     """
     Result for :meth:`dropbox.dropbox.Dropbox.team_team_folder_list` and
     :meth:`dropbox.dropbox.Dropbox.team_team_folder_list_continue`.
@@ -13477,6 +14500,9 @@ class TeamFolderListResult(object):
         self._has_more_value = None
         self._has_more_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamFolderListResult, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TeamFolderListResult(team_folders={!r}, cursor={!r}, has_more={!r})'.format(
             self._team_folders_value,
@@ -13486,15 +14512,18 @@ class TeamFolderListResult(object):
 
 TeamFolderListResult_validator = bv.Struct(TeamFolderListResult)
 
-class TeamFolderMetadata(object):
+class TeamFolderMetadata(bb.Struct):
     """
     Properties of a team folder.
 
     :ivar team_folder_id: The ID of the team folder.
     :ivar name: The name of the team folder.
     :ivar status: The status of the team folder.
-    :ivar is_team_shared_dropbox: True if this team folder is the team shared
-        dropbox.
+    :ivar is_team_shared_dropbox: True if this team folder is a shared team
+        root.
+    :ivar sync_setting: The sync setting applied to this team folder.
+    :ivar content_sync_settings: Sync settings applied to contents of this team
+        folder.
     """
 
     __slots__ = [
@@ -13506,6 +14535,10 @@ class TeamFolderMetadata(object):
         '_status_present',
         '_is_team_shared_dropbox_value',
         '_is_team_shared_dropbox_present',
+        '_sync_setting_value',
+        '_sync_setting_present',
+        '_content_sync_settings_value',
+        '_content_sync_settings_present',
     ]
 
     _has_required_fields = True
@@ -13514,7 +14547,9 @@ class TeamFolderMetadata(object):
                  team_folder_id=None,
                  name=None,
                  status=None,
-                 is_team_shared_dropbox=None):
+                 is_team_shared_dropbox=None,
+                 sync_setting=None,
+                 content_sync_settings=None):
         self._team_folder_id_value = None
         self._team_folder_id_present = False
         self._name_value = None
@@ -13523,6 +14558,10 @@ class TeamFolderMetadata(object):
         self._status_present = False
         self._is_team_shared_dropbox_value = None
         self._is_team_shared_dropbox_present = False
+        self._sync_setting_value = None
+        self._sync_setting_present = False
+        self._content_sync_settings_value = None
+        self._content_sync_settings_present = False
         if team_folder_id is not None:
             self.team_folder_id = team_folder_id
         if name is not None:
@@ -13531,6 +14570,10 @@ class TeamFolderMetadata(object):
             self.status = status
         if is_team_shared_dropbox is not None:
             self.is_team_shared_dropbox = is_team_shared_dropbox
+        if sync_setting is not None:
+            self.sync_setting = sync_setting
+        if content_sync_settings is not None:
+            self.content_sync_settings = content_sync_settings
 
     @property
     def team_folder_id(self):
@@ -13604,7 +14647,7 @@ class TeamFolderMetadata(object):
     @property
     def is_team_shared_dropbox(self):
         """
-        True if this team folder is the team shared dropbox.
+        True if this team folder is a shared team root.
 
         :rtype: bool
         """
@@ -13624,12 +14667,63 @@ class TeamFolderMetadata(object):
         self._is_team_shared_dropbox_value = None
         self._is_team_shared_dropbox_present = False
 
+    @property
+    def sync_setting(self):
+        """
+        The sync setting applied to this team folder.
+
+        :rtype: files.SyncSetting
+        """
+        if self._sync_setting_present:
+            return self._sync_setting_value
+        else:
+            raise AttributeError("missing required field 'sync_setting'")
+
+    @sync_setting.setter
+    def sync_setting(self, val):
+        self._sync_setting_validator.validate_type_only(val)
+        self._sync_setting_value = val
+        self._sync_setting_present = True
+
+    @sync_setting.deleter
+    def sync_setting(self):
+        self._sync_setting_value = None
+        self._sync_setting_present = False
+
+    @property
+    def content_sync_settings(self):
+        """
+        Sync settings applied to contents of this team folder.
+
+        :rtype: list of [files.ContentSyncSetting]
+        """
+        if self._content_sync_settings_present:
+            return self._content_sync_settings_value
+        else:
+            raise AttributeError("missing required field 'content_sync_settings'")
+
+    @content_sync_settings.setter
+    def content_sync_settings(self, val):
+        val = self._content_sync_settings_validator.validate(val)
+        self._content_sync_settings_value = val
+        self._content_sync_settings_present = True
+
+    @content_sync_settings.deleter
+    def content_sync_settings(self):
+        self._content_sync_settings_value = None
+        self._content_sync_settings_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamFolderMetadata, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
-        return 'TeamFolderMetadata(team_folder_id={!r}, name={!r}, status={!r}, is_team_shared_dropbox={!r})'.format(
+        return 'TeamFolderMetadata(team_folder_id={!r}, name={!r}, status={!r}, is_team_shared_dropbox={!r}, sync_setting={!r}, content_sync_settings={!r})'.format(
             self._team_folder_id_value,
             self._name_value,
             self._status_value,
             self._is_team_shared_dropbox_value,
+            self._sync_setting_value,
+            self._content_sync_settings_value,
         )
 
 TeamFolderMetadata_validator = bv.Struct(TeamFolderMetadata)
@@ -13640,6 +14734,9 @@ class TeamFolderPermanentlyDeleteError(BaseTeamFolderError):
     return true. To get the associated value of a tag (if one exists), use the
     corresponding ``get_*`` method.
     """
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamFolderPermanentlyDeleteError, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'TeamFolderPermanentlyDeleteError(%r, %r)' % (self._tag, self._value)
@@ -13689,6 +14786,9 @@ class TeamFolderRenameArg(TeamFolderIdArg):
     def name(self):
         self._name_value = None
         self._name_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamFolderRenameArg, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'TeamFolderRenameArg(team_folder_id={!r}, name={!r})'.format(
@@ -13741,6 +14841,9 @@ class TeamFolderRenameError(BaseTeamFolderError):
         :rtype: bool
         """
         return self._tag == 'folder_name_reserved'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamFolderRenameError, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'TeamFolderRenameError(%r, %r)' % (self._tag, self._value)
@@ -13802,6 +14905,9 @@ class TeamFolderStatus(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamFolderStatus, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TeamFolderStatus(%r, %r)' % (self._tag, self._value)
 
@@ -13813,7 +14919,7 @@ class TeamFolderTeamSharedDropboxError(bb.Union):
     return true. To get the associated value of a tag (if one exists), use the
     corresponding ``get_*`` method.
 
-    :ivar disallowed: This action is not allowed for a team shared dropbox.
+    :ivar disallowed: This action is not allowed for a shared team root.
     """
 
     _catch_all = 'other'
@@ -13838,12 +14944,160 @@ class TeamFolderTeamSharedDropboxError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamFolderTeamSharedDropboxError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TeamFolderTeamSharedDropboxError(%r, %r)' % (self._tag, self._value)
 
 TeamFolderTeamSharedDropboxError_validator = bv.Union(TeamFolderTeamSharedDropboxError)
 
-class TeamGetInfoResult(object):
+class TeamFolderUpdateSyncSettingsArg(TeamFolderIdArg):
+    """
+    :ivar sync_setting: Sync setting to apply to the team folder itself. Only
+        meaningful if the team folder is not a shared team root.
+    :ivar content_sync_settings: Sync settings to apply to contents of this team
+        folder.
+    """
+
+    __slots__ = [
+        '_sync_setting_value',
+        '_sync_setting_present',
+        '_content_sync_settings_value',
+        '_content_sync_settings_present',
+    ]
+
+    _has_required_fields = True
+
+    def __init__(self,
+                 team_folder_id=None,
+                 sync_setting=None,
+                 content_sync_settings=None):
+        super(TeamFolderUpdateSyncSettingsArg, self).__init__(team_folder_id)
+        self._sync_setting_value = None
+        self._sync_setting_present = False
+        self._content_sync_settings_value = None
+        self._content_sync_settings_present = False
+        if sync_setting is not None:
+            self.sync_setting = sync_setting
+        if content_sync_settings is not None:
+            self.content_sync_settings = content_sync_settings
+
+    @property
+    def sync_setting(self):
+        """
+        Sync setting to apply to the team folder itself. Only meaningful if the
+        team folder is not a shared team root.
+
+        :rtype: files.SyncSettingArg
+        """
+        if self._sync_setting_present:
+            return self._sync_setting_value
+        else:
+            return None
+
+    @sync_setting.setter
+    def sync_setting(self, val):
+        if val is None:
+            del self.sync_setting
+            return
+        self._sync_setting_validator.validate_type_only(val)
+        self._sync_setting_value = val
+        self._sync_setting_present = True
+
+    @sync_setting.deleter
+    def sync_setting(self):
+        self._sync_setting_value = None
+        self._sync_setting_present = False
+
+    @property
+    def content_sync_settings(self):
+        """
+        Sync settings to apply to contents of this team folder.
+
+        :rtype: list of [files.ContentSyncSettingArg]
+        """
+        if self._content_sync_settings_present:
+            return self._content_sync_settings_value
+        else:
+            return None
+
+    @content_sync_settings.setter
+    def content_sync_settings(self, val):
+        if val is None:
+            del self.content_sync_settings
+            return
+        val = self._content_sync_settings_validator.validate(val)
+        self._content_sync_settings_value = val
+        self._content_sync_settings_present = True
+
+    @content_sync_settings.deleter
+    def content_sync_settings(self):
+        self._content_sync_settings_value = None
+        self._content_sync_settings_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamFolderUpdateSyncSettingsArg, self)._process_custom_annotations(annotation_type, processor)
+
+    def __repr__(self):
+        return 'TeamFolderUpdateSyncSettingsArg(team_folder_id={!r}, sync_setting={!r}, content_sync_settings={!r})'.format(
+            self._team_folder_id_value,
+            self._sync_setting_value,
+            self._content_sync_settings_value,
+        )
+
+TeamFolderUpdateSyncSettingsArg_validator = bv.Struct(TeamFolderUpdateSyncSettingsArg)
+
+class TeamFolderUpdateSyncSettingsError(BaseTeamFolderError):
+    """
+    This class acts as a tagged union. Only one of the ``is_*`` methods will
+    return true. To get the associated value of a tag (if one exists), use the
+    corresponding ``get_*`` method.
+
+    :ivar SyncSettingsError sync_settings_error: An error occurred setting the
+        sync settings.
+    """
+
+    @classmethod
+    def sync_settings_error(cls, val):
+        """
+        Create an instance of this class set to the ``sync_settings_error`` tag
+        with value ``val``.
+
+        :param files.SyncSettingsError val:
+        :rtype: TeamFolderUpdateSyncSettingsError
+        """
+        return cls('sync_settings_error', val)
+
+    def is_sync_settings_error(self):
+        """
+        Check if the union tag is ``sync_settings_error``.
+
+        :rtype: bool
+        """
+        return self._tag == 'sync_settings_error'
+
+    def get_sync_settings_error(self):
+        """
+        An error occurred setting the sync settings.
+
+        Only call this if :meth:`is_sync_settings_error` is true.
+
+        :rtype: files.SyncSettingsError
+        """
+        if not self.is_sync_settings_error():
+            raise AttributeError("tag 'sync_settings_error' not set")
+        return self._value
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamFolderUpdateSyncSettingsError, self)._process_custom_annotations(annotation_type, processor)
+
+    def __repr__(self):
+        return 'TeamFolderUpdateSyncSettingsError(%r, %r)' % (self._tag, self._value)
+
+TeamFolderUpdateSyncSettingsError_validator = bv.Union(TeamFolderUpdateSyncSettingsError)
+
+class TeamGetInfoResult(bb.Struct):
     """
     :ivar name: The name of the team.
     :ivar team_id: The ID of the team.
@@ -13945,7 +15199,7 @@ class TeamGetInfoResult(object):
         """
         The number of licenses available to the team.
 
-        :rtype: long
+        :rtype: int
         """
         if self._num_licensed_users_present:
             return self._num_licensed_users_value
@@ -13969,7 +15223,7 @@ class TeamGetInfoResult(object):
         The number of accounts that have been invited or are already active
         members of the team.
 
-        :rtype: long
+        :rtype: int
         """
         if self._num_provisioned_users_present:
             return self._num_provisioned_users_value
@@ -13990,7 +15244,7 @@ class TeamGetInfoResult(object):
     @property
     def policies(self):
         """
-        :rtype: team_policies.TeamMemberPolicies_validator
+        :rtype: team_policies.TeamMemberPolicies
         """
         if self._policies_present:
             return self._policies_value
@@ -14008,6 +15262,9 @@ class TeamGetInfoResult(object):
         self._policies_value = None
         self._policies_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamGetInfoResult, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TeamGetInfoResult(name={!r}, team_id={!r}, num_licensed_users={!r}, num_provisioned_users={!r}, policies={!r})'.format(
             self._name_value,
@@ -14019,7 +15276,7 @@ class TeamGetInfoResult(object):
 
 TeamGetInfoResult_validator = bv.Struct(TeamGetInfoResult)
 
-class TeamMemberInfo(object):
+class TeamMemberInfo(bb.Struct):
     """
     Information about a team member.
 
@@ -14094,6 +15351,9 @@ class TeamMemberInfo(object):
         self._role_value = None
         self._role_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamMemberInfo, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TeamMemberInfo(profile={!r}, role={!r})'.format(
             self._profile_value,
@@ -14131,7 +15391,8 @@ class TeamMemberProfile(MemberProfile):
                  external_id=None,
                  account_id=None,
                  joined_on=None,
-                 persistent_id=None):
+                 persistent_id=None,
+                 is_directory_restricted=None):
         super(TeamMemberProfile, self).__init__(team_member_id,
                                                 email,
                                                 email_verified,
@@ -14141,7 +15402,8 @@ class TeamMemberProfile(MemberProfile):
                                                 external_id,
                                                 account_id,
                                                 joined_on,
-                                                persistent_id)
+                                                persistent_id,
+                                                is_directory_restricted)
         self._groups_value = None
         self._groups_present = False
         self._member_folder_id_value = None
@@ -14197,8 +15459,11 @@ class TeamMemberProfile(MemberProfile):
         self._member_folder_id_value = None
         self._member_folder_id_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamMemberProfile, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
-        return 'TeamMemberProfile(team_member_id={!r}, email={!r}, email_verified={!r}, status={!r}, name={!r}, membership_type={!r}, groups={!r}, member_folder_id={!r}, external_id={!r}, account_id={!r}, joined_on={!r}, persistent_id={!r})'.format(
+        return 'TeamMemberProfile(team_member_id={!r}, email={!r}, email_verified={!r}, status={!r}, name={!r}, membership_type={!r}, groups={!r}, member_folder_id={!r}, external_id={!r}, account_id={!r}, joined_on={!r}, persistent_id={!r}, is_directory_restricted={!r})'.format(
             self._team_member_id_value,
             self._email_value,
             self._email_verified_value,
@@ -14211,6 +15476,7 @@ class TeamMemberProfile(MemberProfile):
             self._account_id_value,
             self._joined_on_value,
             self._persistent_id_value,
+            self._is_directory_restricted_value,
         )
 
 TeamMemberProfile_validator = bv.Struct(TeamMemberProfile)
@@ -14296,6 +15562,9 @@ class TeamMemberStatus(bb.Union):
             raise AttributeError("tag 'removed' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamMemberStatus, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TeamMemberStatus(%r, %r)' % (self._tag, self._value)
 
@@ -14335,12 +15604,15 @@ class TeamMembershipType(bb.Union):
         """
         return self._tag == 'limited'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamMembershipType, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TeamMembershipType(%r, %r)' % (self._tag, self._value)
 
 TeamMembershipType_validator = bv.Union(TeamMembershipType)
 
-class TeamNamespacesListArg(object):
+class TeamNamespacesListArg(bb.Struct):
     """
     :ivar limit: Specifying a value here has no effect.
     """
@@ -14364,7 +15636,7 @@ class TeamNamespacesListArg(object):
         """
         Specifying a value here has no effect.
 
-        :rtype: long
+        :rtype: int
         """
         if self._limit_present:
             return self._limit_value
@@ -14382,6 +15654,9 @@ class TeamNamespacesListArg(object):
         self._limit_value = None
         self._limit_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamNamespacesListArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TeamNamespacesListArg(limit={!r})'.format(
             self._limit_value,
@@ -14389,7 +15664,7 @@ class TeamNamespacesListArg(object):
 
 TeamNamespacesListArg_validator = bv.Struct(TeamNamespacesListArg)
 
-class TeamNamespacesListContinueArg(object):
+class TeamNamespacesListContinueArg(bb.Struct):
     """
     :ivar cursor: Indicates from what point to get the next set of
         team-accessible namespaces.
@@ -14433,6 +15708,9 @@ class TeamNamespacesListContinueArg(object):
         self._cursor_value = None
         self._cursor_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamNamespacesListContinueArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TeamNamespacesListContinueArg(cursor={!r})'.format(
             self._cursor_value,
@@ -14440,28 +15718,28 @@ class TeamNamespacesListContinueArg(object):
 
 TeamNamespacesListContinueArg_validator = bv.Struct(TeamNamespacesListContinueArg)
 
-class TeamNamespacesListContinueError(bb.Union):
+class TeamNamespacesListError(bb.Union):
     """
     This class acts as a tagged union. Only one of the ``is_*`` methods will
     return true. To get the associated value of a tag (if one exists), use the
     corresponding ``get_*`` method.
 
-    :ivar invalid_cursor: The cursor is invalid.
+    :ivar invalid_arg: Argument passed in is invalid.
     """
 
     _catch_all = 'other'
     # Attribute is overwritten below the class definition
-    invalid_cursor = None
+    invalid_arg = None
     # Attribute is overwritten below the class definition
     other = None
 
-    def is_invalid_cursor(self):
+    def is_invalid_arg(self):
         """
-        Check if the union tag is ``invalid_cursor``.
+        Check if the union tag is ``invalid_arg``.
 
         :rtype: bool
         """
-        return self._tag == 'invalid_cursor'
+        return self._tag == 'invalid_arg'
 
     def is_other(self):
         """
@@ -14471,12 +15749,43 @@ class TeamNamespacesListContinueError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamNamespacesListError, self)._process_custom_annotations(annotation_type, processor)
+
+    def __repr__(self):
+        return 'TeamNamespacesListError(%r, %r)' % (self._tag, self._value)
+
+TeamNamespacesListError_validator = bv.Union(TeamNamespacesListError)
+
+class TeamNamespacesListContinueError(TeamNamespacesListError):
+    """
+    This class acts as a tagged union. Only one of the ``is_*`` methods will
+    return true. To get the associated value of a tag (if one exists), use the
+    corresponding ``get_*`` method.
+
+    :ivar invalid_cursor: The cursor is invalid.
+    """
+
+    # Attribute is overwritten below the class definition
+    invalid_cursor = None
+
+    def is_invalid_cursor(self):
+        """
+        Check if the union tag is ``invalid_cursor``.
+
+        :rtype: bool
+        """
+        return self._tag == 'invalid_cursor'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamNamespacesListContinueError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TeamNamespacesListContinueError(%r, %r)' % (self._tag, self._value)
 
 TeamNamespacesListContinueError_validator = bv.Union(TeamNamespacesListContinueError)
 
-class TeamNamespacesListResult(object):
+class TeamNamespacesListResult(bb.Struct):
     """
     Result for :meth:`dropbox.dropbox.Dropbox.team_namespaces_list`.
 
@@ -14588,6 +15897,9 @@ class TeamNamespacesListResult(object):
         self._has_more_value = None
         self._has_more_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamNamespacesListResult, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TeamNamespacesListResult(namespaces={!r}, cursor={!r}, has_more={!r})'.format(
             self._namespaces_value,
@@ -14646,12 +15958,15 @@ class TokenGetAuthenticatedAdminError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TokenGetAuthenticatedAdminError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TokenGetAuthenticatedAdminError(%r, %r)' % (self._tag, self._value)
 
 TokenGetAuthenticatedAdminError_validator = bv.Union(TokenGetAuthenticatedAdminError)
 
-class TokenGetAuthenticatedAdminResult(object):
+class TokenGetAuthenticatedAdminResult(bb.Struct):
     """
     Results for
     :meth:`dropbox.dropbox.Dropbox.team_token_get_authenticated_admin`.
@@ -14696,6 +16011,9 @@ class TokenGetAuthenticatedAdminResult(object):
         self._admin_profile_value = None
         self._admin_profile_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TokenGetAuthenticatedAdminResult, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TokenGetAuthenticatedAdminResult(admin_profile={!r})'.format(
             self._admin_profile_value,
@@ -14714,7 +16032,7 @@ class UploadApiRateLimitValue(bb.Union):
     :ivar unlimited: This team has unlimited upload API quota. So far both
         server version account and legacy  account type have unlimited monthly
         upload api quota.
-    :ivar long limit: The number of upload API calls allowed per month.
+    :ivar int limit: The number of upload API calls allowed per month.
     """
 
     _catch_all = 'other'
@@ -14729,7 +16047,7 @@ class UploadApiRateLimitValue(bb.Union):
         Create an instance of this class set to the ``limit`` tag with value
         ``val``.
 
-        :param long val:
+        :param int val:
         :rtype: UploadApiRateLimitValue
         """
         return cls('limit', val)
@@ -14764,18 +16082,21 @@ class UploadApiRateLimitValue(bb.Union):
 
         Only call this if :meth:`is_limit` is true.
 
-        :rtype: long
+        :rtype: int
         """
         if not self.is_limit():
             raise AttributeError("tag 'limit' not set")
         return self._value
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(UploadApiRateLimitValue, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'UploadApiRateLimitValue(%r, %r)' % (self._tag, self._value)
 
 UploadApiRateLimitValue_validator = bv.Union(UploadApiRateLimitValue)
 
-class UserCustomQuotaArg(object):
+class UserCustomQuotaArg(bb.Struct):
     """
     User and their required custom quota in GB (1 TB = 1024 GB).
     """
@@ -14825,7 +16146,7 @@ class UserCustomQuotaArg(object):
     @property
     def quota_gb(self):
         """
-        :rtype: long
+        :rtype: int
         """
         if self._quota_gb_present:
             return self._quota_gb_value
@@ -14843,6 +16164,9 @@ class UserCustomQuotaArg(object):
         self._quota_gb_value = None
         self._quota_gb_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(UserCustomQuotaArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'UserCustomQuotaArg(user={!r}, quota_gb={!r})'.format(
             self._user_value,
@@ -14851,7 +16175,7 @@ class UserCustomQuotaArg(object):
 
 UserCustomQuotaArg_validator = bv.Struct(UserCustomQuotaArg)
 
-class UserCustomQuotaResult(object):
+class UserCustomQuotaResult(bb.Struct):
     """
     User and their custom quota in GB (1 TB = 1024 GB).  No quota returns if the
     user has no custom quota set.
@@ -14902,7 +16226,7 @@ class UserCustomQuotaResult(object):
     @property
     def quota_gb(self):
         """
-        :rtype: long
+        :rtype: int
         """
         if self._quota_gb_present:
             return self._quota_gb_value
@@ -14922,6 +16246,9 @@ class UserCustomQuotaResult(object):
     def quota_gb(self):
         self._quota_gb_value = None
         self._quota_gb_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(UserCustomQuotaResult, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'UserCustomQuotaResult(user={!r}, quota_gb={!r})'.format(
@@ -15029,6 +16356,9 @@ class UserSelectorArg(bb.Union):
         if not self.is_email():
             raise AttributeError("tag 'email' not set")
         return self._value
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(UserSelectorArg, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'UserSelectorArg(%r, %r)' % (self._tag, self._value)
@@ -15143,6 +16473,9 @@ class UsersSelectorArg(bb.Union):
         if not self.is_emails():
             raise AttributeError("tag 'emails' not set")
         return self._value
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(UsersSelectorArg, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'UsersSelectorArg(%r, %r)' % (self._tag, self._value)
@@ -15438,27 +16771,32 @@ ExcludedUsersUpdateStatus.other = ExcludedUsersUpdateStatus('other')
 Feature._upload_api_rate_limit_validator = bv.Void()
 Feature._has_team_shared_dropbox_validator = bv.Void()
 Feature._has_team_file_events_validator = bv.Void()
+Feature._has_team_selective_sync_validator = bv.Void()
 Feature._other_validator = bv.Void()
 Feature._tagmap = {
     'upload_api_rate_limit': Feature._upload_api_rate_limit_validator,
     'has_team_shared_dropbox': Feature._has_team_shared_dropbox_validator,
     'has_team_file_events': Feature._has_team_file_events_validator,
+    'has_team_selective_sync': Feature._has_team_selective_sync_validator,
     'other': Feature._other_validator,
 }
 
 Feature.upload_api_rate_limit = Feature('upload_api_rate_limit')
 Feature.has_team_shared_dropbox = Feature('has_team_shared_dropbox')
 Feature.has_team_file_events = Feature('has_team_file_events')
+Feature.has_team_selective_sync = Feature('has_team_selective_sync')
 Feature.other = Feature('other')
 
 FeatureValue._upload_api_rate_limit_validator = UploadApiRateLimitValue_validator
 FeatureValue._has_team_shared_dropbox_validator = HasTeamSharedDropboxValue_validator
 FeatureValue._has_team_file_events_validator = HasTeamFileEventsValue_validator
+FeatureValue._has_team_selective_sync_validator = HasTeamSelectiveSyncValue_validator
 FeatureValue._other_validator = bv.Void()
 FeatureValue._tagmap = {
     'upload_api_rate_limit': FeatureValue._upload_api_rate_limit_validator,
     'has_team_shared_dropbox': FeatureValue._has_team_shared_dropbox_validator,
     'has_team_file_events': FeatureValue._has_team_file_events_validator,
+    'has_team_selective_sync': FeatureValue._has_team_selective_sync_validator,
     'other': FeatureValue._other_validator,
 }
 
@@ -15737,7 +17075,7 @@ GroupMembersAddError.group_not_in_team = GroupMembersAddError('group_not_in_team
 GroupMembersAddError.user_must_be_active_to_be_owner = GroupMembersAddError('user_must_be_active_to_be_owner')
 
 GroupMembersChangeResult._group_info_validator = GroupFullInfo_validator
-GroupMembersChangeResult._async_job_id_validator = async.AsyncJobId_validator
+GroupMembersChangeResult._async_job_id_validator = async_.AsyncJobId_validator
 GroupMembersChangeResult._all_field_names_ = set([
     'group_info',
     'async_job_id',
@@ -15930,7 +17268,7 @@ GroupsPollError._access_denied_validator = bv.Void()
 GroupsPollError._tagmap = {
     'access_denied': GroupsPollError._access_denied_validator,
 }
-GroupsPollError._tagmap.update(async.PollError._tagmap)
+GroupsPollError._tagmap.update(async_.PollError._tagmap)
 
 GroupsPollError.access_denied = GroupsPollError('access_denied')
 
@@ -15949,6 +17287,15 @@ HasTeamFileEventsValue._tagmap = {
 }
 
 HasTeamFileEventsValue.other = HasTeamFileEventsValue('other')
+
+HasTeamSelectiveSyncValue._has_team_selective_sync_validator = bv.Boolean()
+HasTeamSelectiveSyncValue._other_validator = bv.Void()
+HasTeamSelectiveSyncValue._tagmap = {
+    'has_team_selective_sync': HasTeamSelectiveSyncValue._has_team_selective_sync_validator,
+    'other': HasTeamSelectiveSyncValue._other_validator,
+}
+
+HasTeamSelectiveSyncValue.other = HasTeamSelectiveSyncValue('other')
 
 HasTeamSharedDropboxValue._has_team_shared_dropbox_validator = bv.Boolean()
 HasTeamSharedDropboxValue._other_validator = bv.Void()
@@ -16174,6 +17521,7 @@ MemberAddArg._member_external_id_validator = bv.Nullable(team_common.MemberExter
 MemberAddArg._member_persistent_id_validator = bv.Nullable(bv.String())
 MemberAddArg._send_welcome_email_validator = bv.Boolean()
 MemberAddArg._role_validator = AdminTier_validator
+MemberAddArg._is_directory_restricted_validator = bv.Nullable(bv.Boolean())
 MemberAddArg._all_field_names_ = set([
     'member_email',
     'member_given_name',
@@ -16182,6 +17530,7 @@ MemberAddArg._all_field_names_ = set([
     'member_persistent_id',
     'send_welcome_email',
     'role',
+    'is_directory_restricted',
 ])
 MemberAddArg._all_fields_ = [
     ('member_email', MemberAddArg._member_email_validator),
@@ -16191,6 +17540,7 @@ MemberAddArg._all_fields_ = [
     ('member_persistent_id', MemberAddArg._member_persistent_id_validator),
     ('send_welcome_email', MemberAddArg._send_welcome_email_validator),
     ('role', MemberAddArg._role_validator),
+    ('is_directory_restricted', MemberAddArg._is_directory_restricted_validator),
 ]
 
 MemberAddResult._success_validator = TeamMemberInfo_validator
@@ -16256,6 +17606,7 @@ MemberProfile._name_validator = users.Name_validator
 MemberProfile._membership_type_validator = TeamMembershipType_validator
 MemberProfile._joined_on_validator = bv.Nullable(common.DropboxTimestamp_validator)
 MemberProfile._persistent_id_validator = bv.Nullable(bv.String())
+MemberProfile._is_directory_restricted_validator = bv.Nullable(bv.Boolean())
 MemberProfile._all_field_names_ = set([
     'team_member_id',
     'external_id',
@@ -16267,6 +17618,7 @@ MemberProfile._all_field_names_ = set([
     'membership_type',
     'joined_on',
     'persistent_id',
+    'is_directory_restricted',
 ])
 MemberProfile._all_fields_ = [
     ('team_member_id', MemberProfile._team_member_id_validator),
@@ -16279,6 +17631,7 @@ MemberProfile._all_fields_ = [
     ('membership_type', MemberProfile._membership_type_validator),
     ('joined_on', MemberProfile._joined_on_validator),
     ('persistent_id', MemberProfile._persistent_id_validator),
+    ('is_directory_restricted', MemberProfile._is_directory_restricted_validator),
 ]
 
 UserSelectorError._user_not_found_validator = bv.Void()
@@ -16313,24 +17666,32 @@ MembersAddJobStatus._tagmap = {
     'complete': MembersAddJobStatus._complete_validator,
     'failed': MembersAddJobStatus._failed_validator,
 }
-MembersAddJobStatus._tagmap.update(async.PollResultBase._tagmap)
+MembersAddJobStatus._tagmap.update(async_.PollResultBase._tagmap)
 
 MembersAddLaunch._complete_validator = bv.List(MemberAddResult_validator)
 MembersAddLaunch._tagmap = {
     'complete': MembersAddLaunch._complete_validator,
 }
-MembersAddLaunch._tagmap.update(async.LaunchResultBase._tagmap)
+MembersAddLaunch._tagmap.update(async_.LaunchResultBase._tagmap)
 
-MembersDeactivateArg._user_validator = UserSelectorArg_validator
-MembersDeactivateArg._wipe_data_validator = bv.Boolean()
-MembersDeactivateArg._all_field_names_ = set([
-    'user',
-    'wipe_data',
-])
-MembersDeactivateArg._all_fields_ = [
-    ('user', MembersDeactivateArg._user_validator),
-    ('wipe_data', MembersDeactivateArg._wipe_data_validator),
+MembersDeactivateBaseArg._user_validator = UserSelectorArg_validator
+MembersDeactivateBaseArg._all_field_names_ = set(['user'])
+MembersDeactivateBaseArg._all_fields_ = [('user', MembersDeactivateBaseArg._user_validator)]
+
+MembersDataTransferArg._transfer_dest_id_validator = UserSelectorArg_validator
+MembersDataTransferArg._transfer_admin_id_validator = UserSelectorArg_validator
+MembersDataTransferArg._all_field_names_ = MembersDeactivateBaseArg._all_field_names_.union(set([
+    'transfer_dest_id',
+    'transfer_admin_id',
+]))
+MembersDataTransferArg._all_fields_ = MembersDeactivateBaseArg._all_fields_ + [
+    ('transfer_dest_id', MembersDataTransferArg._transfer_dest_id_validator),
+    ('transfer_admin_id', MembersDataTransferArg._transfer_admin_id_validator),
 ]
+
+MembersDeactivateArg._wipe_data_validator = bv.Boolean()
+MembersDeactivateArg._all_field_names_ = MembersDeactivateBaseArg._all_field_names_.union(set(['wipe_data']))
+MembersDeactivateArg._all_fields_ = MembersDeactivateBaseArg._all_fields_ + [('wipe_data', MembersDeactivateArg._wipe_data_validator)]
 
 MembersDeactivateError._user_not_in_team_validator = bv.Void()
 MembersDeactivateError._other_validator = bv.Void()
@@ -16442,46 +17803,57 @@ MembersRemoveArg._all_fields_ = MembersDeactivateArg._all_fields_ + [
     ('keep_account', MembersRemoveArg._keep_account_validator),
 ]
 
+MembersTransferFilesError._removed_and_transfer_dest_should_differ_validator = bv.Void()
+MembersTransferFilesError._removed_and_transfer_admin_should_differ_validator = bv.Void()
+MembersTransferFilesError._transfer_dest_user_not_found_validator = bv.Void()
+MembersTransferFilesError._transfer_dest_user_not_in_team_validator = bv.Void()
+MembersTransferFilesError._transfer_admin_user_not_in_team_validator = bv.Void()
+MembersTransferFilesError._transfer_admin_user_not_found_validator = bv.Void()
+MembersTransferFilesError._unspecified_transfer_admin_id_validator = bv.Void()
+MembersTransferFilesError._transfer_admin_is_not_admin_validator = bv.Void()
+MembersTransferFilesError._recipient_not_verified_validator = bv.Void()
+MembersTransferFilesError._tagmap = {
+    'removed_and_transfer_dest_should_differ': MembersTransferFilesError._removed_and_transfer_dest_should_differ_validator,
+    'removed_and_transfer_admin_should_differ': MembersTransferFilesError._removed_and_transfer_admin_should_differ_validator,
+    'transfer_dest_user_not_found': MembersTransferFilesError._transfer_dest_user_not_found_validator,
+    'transfer_dest_user_not_in_team': MembersTransferFilesError._transfer_dest_user_not_in_team_validator,
+    'transfer_admin_user_not_in_team': MembersTransferFilesError._transfer_admin_user_not_in_team_validator,
+    'transfer_admin_user_not_found': MembersTransferFilesError._transfer_admin_user_not_found_validator,
+    'unspecified_transfer_admin_id': MembersTransferFilesError._unspecified_transfer_admin_id_validator,
+    'transfer_admin_is_not_admin': MembersTransferFilesError._transfer_admin_is_not_admin_validator,
+    'recipient_not_verified': MembersTransferFilesError._recipient_not_verified_validator,
+}
+MembersTransferFilesError._tagmap.update(MembersDeactivateError._tagmap)
+
+MembersTransferFilesError.removed_and_transfer_dest_should_differ = MembersTransferFilesError('removed_and_transfer_dest_should_differ')
+MembersTransferFilesError.removed_and_transfer_admin_should_differ = MembersTransferFilesError('removed_and_transfer_admin_should_differ')
+MembersTransferFilesError.transfer_dest_user_not_found = MembersTransferFilesError('transfer_dest_user_not_found')
+MembersTransferFilesError.transfer_dest_user_not_in_team = MembersTransferFilesError('transfer_dest_user_not_in_team')
+MembersTransferFilesError.transfer_admin_user_not_in_team = MembersTransferFilesError('transfer_admin_user_not_in_team')
+MembersTransferFilesError.transfer_admin_user_not_found = MembersTransferFilesError('transfer_admin_user_not_found')
+MembersTransferFilesError.unspecified_transfer_admin_id = MembersTransferFilesError('unspecified_transfer_admin_id')
+MembersTransferFilesError.transfer_admin_is_not_admin = MembersTransferFilesError('transfer_admin_is_not_admin')
+MembersTransferFilesError.recipient_not_verified = MembersTransferFilesError('recipient_not_verified')
+
 MembersRemoveError._remove_last_admin_validator = bv.Void()
-MembersRemoveError._removed_and_transfer_dest_should_differ_validator = bv.Void()
-MembersRemoveError._removed_and_transfer_admin_should_differ_validator = bv.Void()
-MembersRemoveError._transfer_dest_user_not_found_validator = bv.Void()
-MembersRemoveError._transfer_dest_user_not_in_team_validator = bv.Void()
-MembersRemoveError._transfer_admin_user_not_found_validator = bv.Void()
-MembersRemoveError._transfer_admin_user_not_in_team_validator = bv.Void()
-MembersRemoveError._unspecified_transfer_admin_id_validator = bv.Void()
-MembersRemoveError._transfer_admin_is_not_admin_validator = bv.Void()
 MembersRemoveError._cannot_keep_account_and_transfer_validator = bv.Void()
 MembersRemoveError._cannot_keep_account_and_delete_data_validator = bv.Void()
 MembersRemoveError._email_address_too_long_to_be_disabled_validator = bv.Void()
+MembersRemoveError._cannot_keep_invited_user_account_validator = bv.Void()
 MembersRemoveError._tagmap = {
     'remove_last_admin': MembersRemoveError._remove_last_admin_validator,
-    'removed_and_transfer_dest_should_differ': MembersRemoveError._removed_and_transfer_dest_should_differ_validator,
-    'removed_and_transfer_admin_should_differ': MembersRemoveError._removed_and_transfer_admin_should_differ_validator,
-    'transfer_dest_user_not_found': MembersRemoveError._transfer_dest_user_not_found_validator,
-    'transfer_dest_user_not_in_team': MembersRemoveError._transfer_dest_user_not_in_team_validator,
-    'transfer_admin_user_not_found': MembersRemoveError._transfer_admin_user_not_found_validator,
-    'transfer_admin_user_not_in_team': MembersRemoveError._transfer_admin_user_not_in_team_validator,
-    'unspecified_transfer_admin_id': MembersRemoveError._unspecified_transfer_admin_id_validator,
-    'transfer_admin_is_not_admin': MembersRemoveError._transfer_admin_is_not_admin_validator,
     'cannot_keep_account_and_transfer': MembersRemoveError._cannot_keep_account_and_transfer_validator,
     'cannot_keep_account_and_delete_data': MembersRemoveError._cannot_keep_account_and_delete_data_validator,
     'email_address_too_long_to_be_disabled': MembersRemoveError._email_address_too_long_to_be_disabled_validator,
+    'cannot_keep_invited_user_account': MembersRemoveError._cannot_keep_invited_user_account_validator,
 }
-MembersRemoveError._tagmap.update(MembersDeactivateError._tagmap)
+MembersRemoveError._tagmap.update(MembersTransferFilesError._tagmap)
 
 MembersRemoveError.remove_last_admin = MembersRemoveError('remove_last_admin')
-MembersRemoveError.removed_and_transfer_dest_should_differ = MembersRemoveError('removed_and_transfer_dest_should_differ')
-MembersRemoveError.removed_and_transfer_admin_should_differ = MembersRemoveError('removed_and_transfer_admin_should_differ')
-MembersRemoveError.transfer_dest_user_not_found = MembersRemoveError('transfer_dest_user_not_found')
-MembersRemoveError.transfer_dest_user_not_in_team = MembersRemoveError('transfer_dest_user_not_in_team')
-MembersRemoveError.transfer_admin_user_not_found = MembersRemoveError('transfer_admin_user_not_found')
-MembersRemoveError.transfer_admin_user_not_in_team = MembersRemoveError('transfer_admin_user_not_in_team')
-MembersRemoveError.unspecified_transfer_admin_id = MembersRemoveError('unspecified_transfer_admin_id')
-MembersRemoveError.transfer_admin_is_not_admin = MembersRemoveError('transfer_admin_is_not_admin')
 MembersRemoveError.cannot_keep_account_and_transfer = MembersRemoveError('cannot_keep_account_and_transfer')
 MembersRemoveError.cannot_keep_account_and_delete_data = MembersRemoveError('cannot_keep_account_and_delete_data')
 MembersRemoveError.email_address_too_long_to_be_disabled = MembersRemoveError('email_address_too_long_to_be_disabled')
+MembersRemoveError.cannot_keep_invited_user_account = MembersRemoveError('cannot_keep_invited_user_account')
 
 MembersSendWelcomeError._other_validator = bv.Void()
 MembersSendWelcomeError._tagmap = {
@@ -16539,6 +17911,7 @@ MembersSetProfileArg._new_external_id_validator = bv.Nullable(team_common.Member
 MembersSetProfileArg._new_given_name_validator = bv.Nullable(common.OptionalNamePart_validator)
 MembersSetProfileArg._new_surname_validator = bv.Nullable(common.OptionalNamePart_validator)
 MembersSetProfileArg._new_persistent_id_validator = bv.Nullable(bv.String())
+MembersSetProfileArg._new_is_directory_restricted_validator = bv.Nullable(bv.Boolean())
 MembersSetProfileArg._all_field_names_ = set([
     'user',
     'new_email',
@@ -16546,6 +17919,7 @@ MembersSetProfileArg._all_field_names_ = set([
     'new_given_name',
     'new_surname',
     'new_persistent_id',
+    'new_is_directory_restricted',
 ])
 MembersSetProfileArg._all_fields_ = [
     ('user', MembersSetProfileArg._user_validator),
@@ -16554,6 +17928,7 @@ MembersSetProfileArg._all_fields_ = [
     ('new_given_name', MembersSetProfileArg._new_given_name_validator),
     ('new_surname', MembersSetProfileArg._new_surname_validator),
     ('new_persistent_id', MembersSetProfileArg._new_persistent_id_validator),
+    ('new_is_directory_restricted', MembersSetProfileArg._new_is_directory_restricted_validator),
 ]
 
 MembersSetProfileError._external_id_and_new_external_id_unsafe_validator = bv.Void()
@@ -16564,6 +17939,7 @@ MembersSetProfileError._set_profile_disallowed_validator = bv.Void()
 MembersSetProfileError._param_cannot_be_empty_validator = bv.Void()
 MembersSetProfileError._persistent_id_disabled_validator = bv.Void()
 MembersSetProfileError._persistent_id_used_by_other_user_validator = bv.Void()
+MembersSetProfileError._directory_restricted_off_validator = bv.Void()
 MembersSetProfileError._other_validator = bv.Void()
 MembersSetProfileError._tagmap = {
     'external_id_and_new_external_id_unsafe': MembersSetProfileError._external_id_and_new_external_id_unsafe_validator,
@@ -16574,6 +17950,7 @@ MembersSetProfileError._tagmap = {
     'param_cannot_be_empty': MembersSetProfileError._param_cannot_be_empty_validator,
     'persistent_id_disabled': MembersSetProfileError._persistent_id_disabled_validator,
     'persistent_id_used_by_other_user': MembersSetProfileError._persistent_id_used_by_other_user_validator,
+    'directory_restricted_off': MembersSetProfileError._directory_restricted_off_validator,
     'other': MembersSetProfileError._other_validator,
 }
 MembersSetProfileError._tagmap.update(MemberSelectorError._tagmap)
@@ -16586,6 +17963,7 @@ MembersSetProfileError.set_profile_disallowed = MembersSetProfileError('set_prof
 MembersSetProfileError.param_cannot_be_empty = MembersSetProfileError('param_cannot_be_empty')
 MembersSetProfileError.persistent_id_disabled = MembersSetProfileError('persistent_id_disabled')
 MembersSetProfileError.persistent_id_used_by_other_user = MembersSetProfileError('persistent_id_used_by_other_user')
+MembersSetProfileError.directory_restricted_off = MembersSetProfileError('directory_restricted_off')
 MembersSetProfileError.other = MembersSetProfileError('other')
 
 MembersSuspendError._suspend_inactive_user_validator = bv.Void()
@@ -16601,6 +17979,23 @@ MembersSuspendError._tagmap.update(MembersDeactivateError._tagmap)
 MembersSuspendError.suspend_inactive_user = MembersSuspendError('suspend_inactive_user')
 MembersSuspendError.suspend_last_admin = MembersSuspendError('suspend_last_admin')
 MembersSuspendError.team_license_limit = MembersSuspendError('team_license_limit')
+
+MembersTransferFormerMembersFilesError._user_data_is_being_transferred_validator = bv.Void()
+MembersTransferFormerMembersFilesError._user_not_removed_validator = bv.Void()
+MembersTransferFormerMembersFilesError._user_data_cannot_be_transferred_validator = bv.Void()
+MembersTransferFormerMembersFilesError._user_data_already_transferred_validator = bv.Void()
+MembersTransferFormerMembersFilesError._tagmap = {
+    'user_data_is_being_transferred': MembersTransferFormerMembersFilesError._user_data_is_being_transferred_validator,
+    'user_not_removed': MembersTransferFormerMembersFilesError._user_not_removed_validator,
+    'user_data_cannot_be_transferred': MembersTransferFormerMembersFilesError._user_data_cannot_be_transferred_validator,
+    'user_data_already_transferred': MembersTransferFormerMembersFilesError._user_data_already_transferred_validator,
+}
+MembersTransferFormerMembersFilesError._tagmap.update(MembersTransferFilesError._tagmap)
+
+MembersTransferFormerMembersFilesError.user_data_is_being_transferred = MembersTransferFormerMembersFilesError('user_data_is_being_transferred')
+MembersTransferFormerMembersFilesError.user_not_removed = MembersTransferFormerMembersFilesError('user_not_removed')
+MembersTransferFormerMembersFilesError.user_data_cannot_be_transferred = MembersTransferFormerMembersFilesError('user_data_cannot_be_transferred')
+MembersTransferFormerMembersFilesError.user_data_already_transferred = MembersTransferFormerMembersFilesError('user_data_already_transferred')
 
 MembersUnsuspendArg._user_validator = UserSelectorArg_validator
 MembersUnsuspendArg._all_field_names_ = set(['user'])
@@ -16707,8 +18102,15 @@ RemoveCustomQuotaResult._tagmap = {
 RemoveCustomQuotaResult.other = RemoveCustomQuotaResult('other')
 
 RemovedStatus._is_recoverable_validator = bv.Boolean()
-RemovedStatus._all_field_names_ = set(['is_recoverable'])
-RemovedStatus._all_fields_ = [('is_recoverable', RemovedStatus._is_recoverable_validator)]
+RemovedStatus._is_disconnected_validator = bv.Boolean()
+RemovedStatus._all_field_names_ = set([
+    'is_recoverable',
+    'is_disconnected',
+])
+RemovedStatus._all_fields_ = [
+    ('is_recoverable', RemovedStatus._is_recoverable_validator),
+    ('is_disconnected', RemovedStatus._is_disconnected_validator),
+]
 
 RevokeDesktopClientArg._delete_on_unlink_validator = bv.Boolean()
 RevokeDesktopClientArg._all_field_names_ = DeviceSessionArg._all_field_names_.union(set(['delete_on_unlink']))
@@ -16873,26 +18275,35 @@ TeamFolderArchiveJobStatus._tagmap = {
     'complete': TeamFolderArchiveJobStatus._complete_validator,
     'failed': TeamFolderArchiveJobStatus._failed_validator,
 }
-TeamFolderArchiveJobStatus._tagmap.update(async.PollResultBase._tagmap)
+TeamFolderArchiveJobStatus._tagmap.update(async_.PollResultBase._tagmap)
 
 TeamFolderArchiveLaunch._complete_validator = TeamFolderMetadata_validator
 TeamFolderArchiveLaunch._tagmap = {
     'complete': TeamFolderArchiveLaunch._complete_validator,
 }
-TeamFolderArchiveLaunch._tagmap.update(async.LaunchResultBase._tagmap)
+TeamFolderArchiveLaunch._tagmap.update(async_.LaunchResultBase._tagmap)
 
 TeamFolderCreateArg._name_validator = bv.String()
-TeamFolderCreateArg._all_field_names_ = set(['name'])
-TeamFolderCreateArg._all_fields_ = [('name', TeamFolderCreateArg._name_validator)]
+TeamFolderCreateArg._sync_setting_validator = bv.Nullable(files.SyncSettingArg_validator)
+TeamFolderCreateArg._all_field_names_ = set([
+    'name',
+    'sync_setting',
+])
+TeamFolderCreateArg._all_fields_ = [
+    ('name', TeamFolderCreateArg._name_validator),
+    ('sync_setting', TeamFolderCreateArg._sync_setting_validator),
+]
 
 TeamFolderCreateError._invalid_folder_name_validator = bv.Void()
 TeamFolderCreateError._folder_name_already_used_validator = bv.Void()
 TeamFolderCreateError._folder_name_reserved_validator = bv.Void()
+TeamFolderCreateError._sync_settings_error_validator = files.SyncSettingsError_validator
 TeamFolderCreateError._other_validator = bv.Void()
 TeamFolderCreateError._tagmap = {
     'invalid_folder_name': TeamFolderCreateError._invalid_folder_name_validator,
     'folder_name_already_used': TeamFolderCreateError._folder_name_already_used_validator,
     'folder_name_reserved': TeamFolderCreateError._folder_name_reserved_validator,
+    'sync_settings_error': TeamFolderCreateError._sync_settings_error_validator,
     'other': TeamFolderCreateError._other_validator,
 }
 
@@ -16968,17 +18379,23 @@ TeamFolderMetadata._team_folder_id_validator = common.SharedFolderId_validator
 TeamFolderMetadata._name_validator = bv.String()
 TeamFolderMetadata._status_validator = TeamFolderStatus_validator
 TeamFolderMetadata._is_team_shared_dropbox_validator = bv.Boolean()
+TeamFolderMetadata._sync_setting_validator = files.SyncSetting_validator
+TeamFolderMetadata._content_sync_settings_validator = bv.List(files.ContentSyncSetting_validator)
 TeamFolderMetadata._all_field_names_ = set([
     'team_folder_id',
     'name',
     'status',
     'is_team_shared_dropbox',
+    'sync_setting',
+    'content_sync_settings',
 ])
 TeamFolderMetadata._all_fields_ = [
     ('team_folder_id', TeamFolderMetadata._team_folder_id_validator),
     ('name', TeamFolderMetadata._name_validator),
     ('status', TeamFolderMetadata._status_validator),
     ('is_team_shared_dropbox', TeamFolderMetadata._is_team_shared_dropbox_validator),
+    ('sync_setting', TeamFolderMetadata._sync_setting_validator),
+    ('content_sync_settings', TeamFolderMetadata._content_sync_settings_validator),
 ]
 
 TeamFolderPermanentlyDeleteError._tagmap = {
@@ -17028,6 +18445,23 @@ TeamFolderTeamSharedDropboxError._tagmap = {
 
 TeamFolderTeamSharedDropboxError.disallowed = TeamFolderTeamSharedDropboxError('disallowed')
 TeamFolderTeamSharedDropboxError.other = TeamFolderTeamSharedDropboxError('other')
+
+TeamFolderUpdateSyncSettingsArg._sync_setting_validator = bv.Nullable(files.SyncSettingArg_validator)
+TeamFolderUpdateSyncSettingsArg._content_sync_settings_validator = bv.Nullable(bv.List(files.ContentSyncSettingArg_validator))
+TeamFolderUpdateSyncSettingsArg._all_field_names_ = TeamFolderIdArg._all_field_names_.union(set([
+    'sync_setting',
+    'content_sync_settings',
+]))
+TeamFolderUpdateSyncSettingsArg._all_fields_ = TeamFolderIdArg._all_fields_ + [
+    ('sync_setting', TeamFolderUpdateSyncSettingsArg._sync_setting_validator),
+    ('content_sync_settings', TeamFolderUpdateSyncSettingsArg._content_sync_settings_validator),
+]
+
+TeamFolderUpdateSyncSettingsError._sync_settings_error_validator = files.SyncSettingsError_validator
+TeamFolderUpdateSyncSettingsError._tagmap = {
+    'sync_settings_error': TeamFolderUpdateSyncSettingsError._sync_settings_error_validator,
+}
+TeamFolderUpdateSyncSettingsError._tagmap.update(BaseTeamFolderError._tagmap)
 
 TeamGetInfoResult._name_validator = bv.String()
 TeamGetInfoResult._team_id_validator = bv.String()
@@ -17104,15 +18538,23 @@ TeamNamespacesListContinueArg._cursor_validator = bv.String()
 TeamNamespacesListContinueArg._all_field_names_ = set(['cursor'])
 TeamNamespacesListContinueArg._all_fields_ = [('cursor', TeamNamespacesListContinueArg._cursor_validator)]
 
-TeamNamespacesListContinueError._invalid_cursor_validator = bv.Void()
-TeamNamespacesListContinueError._other_validator = bv.Void()
-TeamNamespacesListContinueError._tagmap = {
-    'invalid_cursor': TeamNamespacesListContinueError._invalid_cursor_validator,
-    'other': TeamNamespacesListContinueError._other_validator,
+TeamNamespacesListError._invalid_arg_validator = bv.Void()
+TeamNamespacesListError._other_validator = bv.Void()
+TeamNamespacesListError._tagmap = {
+    'invalid_arg': TeamNamespacesListError._invalid_arg_validator,
+    'other': TeamNamespacesListError._other_validator,
 }
 
+TeamNamespacesListError.invalid_arg = TeamNamespacesListError('invalid_arg')
+TeamNamespacesListError.other = TeamNamespacesListError('other')
+
+TeamNamespacesListContinueError._invalid_cursor_validator = bv.Void()
+TeamNamespacesListContinueError._tagmap = {
+    'invalid_cursor': TeamNamespacesListContinueError._invalid_cursor_validator,
+}
+TeamNamespacesListContinueError._tagmap.update(TeamNamespacesListError._tagmap)
+
 TeamNamespacesListContinueError.invalid_cursor = TeamNamespacesListContinueError('invalid_cursor')
-TeamNamespacesListContinueError.other = TeamNamespacesListContinueError('other')
 
 TeamNamespacesListResult._namespaces_validator = bv.List(NamespaceMetadata_validator)
 TeamNamespacesListResult._cursor_validator = bv.String()
@@ -17199,6 +18641,7 @@ UsersSelectorArg._tagmap = {
 
 devices_list_member_devices = bb.Route(
     'devices/list_member_devices',
+    1,
     False,
     ListMemberDevicesArg_validator,
     ListMemberDevicesResult_validator,
@@ -17208,6 +18651,7 @@ devices_list_member_devices = bb.Route(
 )
 devices_list_members_devices = bb.Route(
     'devices/list_members_devices',
+    1,
     False,
     ListMembersDevicesArg_validator,
     ListMembersDevicesResult_validator,
@@ -17217,6 +18661,7 @@ devices_list_members_devices = bb.Route(
 )
 devices_list_team_devices = bb.Route(
     'devices/list_team_devices',
+    1,
     True,
     ListTeamDevicesArg_validator,
     ListTeamDevicesResult_validator,
@@ -17226,6 +18671,7 @@ devices_list_team_devices = bb.Route(
 )
 devices_revoke_device_session = bb.Route(
     'devices/revoke_device_session',
+    1,
     False,
     RevokeDeviceSessionArg_validator,
     bv.Void(),
@@ -17235,6 +18681,7 @@ devices_revoke_device_session = bb.Route(
 )
 devices_revoke_device_session_batch = bb.Route(
     'devices/revoke_device_session_batch',
+    1,
     False,
     RevokeDeviceSessionBatchArg_validator,
     RevokeDeviceSessionBatchResult_validator,
@@ -17244,6 +18691,7 @@ devices_revoke_device_session_batch = bb.Route(
 )
 features_get_values = bb.Route(
     'features/get_values',
+    1,
     False,
     FeaturesGetValuesBatchArg_validator,
     FeaturesGetValuesBatchResult_validator,
@@ -17253,6 +18701,7 @@ features_get_values = bb.Route(
 )
 get_info = bb.Route(
     'get_info',
+    1,
     False,
     bv.Void(),
     TeamGetInfoResult_validator,
@@ -17262,6 +18711,7 @@ get_info = bb.Route(
 )
 groups_create = bb.Route(
     'groups/create',
+    1,
     False,
     GroupCreateArg_validator,
     GroupFullInfo_validator,
@@ -17271,15 +18721,17 @@ groups_create = bb.Route(
 )
 groups_delete = bb.Route(
     'groups/delete',
+    1,
     False,
     GroupSelector_validator,
-    async.LaunchEmptyResult_validator,
+    async_.LaunchEmptyResult_validator,
     GroupDeleteError_validator,
     {'host': u'api',
      'style': u'rpc'},
 )
 groups_get_info = bb.Route(
     'groups/get_info',
+    1,
     False,
     GroupsSelector_validator,
     GroupsGetInfoResult_validator,
@@ -17289,15 +18741,17 @@ groups_get_info = bb.Route(
 )
 groups_job_status_get = bb.Route(
     'groups/job_status/get',
+    1,
     False,
-    async.PollArg_validator,
-    async.PollEmptyResult_validator,
+    async_.PollArg_validator,
+    async_.PollEmptyResult_validator,
     GroupsPollError_validator,
     {'host': u'api',
      'style': u'rpc'},
 )
 groups_list = bb.Route(
     'groups/list',
+    1,
     False,
     GroupsListArg_validator,
     GroupsListResult_validator,
@@ -17307,6 +18761,7 @@ groups_list = bb.Route(
 )
 groups_list_continue = bb.Route(
     'groups/list/continue',
+    1,
     False,
     GroupsListContinueArg_validator,
     GroupsListResult_validator,
@@ -17316,6 +18771,7 @@ groups_list_continue = bb.Route(
 )
 groups_members_add = bb.Route(
     'groups/members/add',
+    1,
     False,
     GroupMembersAddArg_validator,
     GroupMembersChangeResult_validator,
@@ -17325,6 +18781,7 @@ groups_members_add = bb.Route(
 )
 groups_members_list = bb.Route(
     'groups/members/list',
+    1,
     False,
     GroupsMembersListArg_validator,
     GroupsMembersListResult_validator,
@@ -17334,6 +18791,7 @@ groups_members_list = bb.Route(
 )
 groups_members_list_continue = bb.Route(
     'groups/members/list/continue',
+    1,
     False,
     GroupsMembersListContinueArg_validator,
     GroupsMembersListResult_validator,
@@ -17343,6 +18801,7 @@ groups_members_list_continue = bb.Route(
 )
 groups_members_remove = bb.Route(
     'groups/members/remove',
+    1,
     False,
     GroupMembersRemoveArg_validator,
     GroupMembersChangeResult_validator,
@@ -17352,6 +18811,7 @@ groups_members_remove = bb.Route(
 )
 groups_members_set_access_type = bb.Route(
     'groups/members/set_access_type',
+    1,
     False,
     GroupMembersSetAccessTypeArg_validator,
     GroupsGetInfoResult_validator,
@@ -17361,6 +18821,7 @@ groups_members_set_access_type = bb.Route(
 )
 groups_update = bb.Route(
     'groups/update',
+    1,
     False,
     GroupUpdateArgs_validator,
     GroupFullInfo_validator,
@@ -17370,6 +18831,7 @@ groups_update = bb.Route(
 )
 linked_apps_list_member_linked_apps = bb.Route(
     'linked_apps/list_member_linked_apps',
+    1,
     False,
     ListMemberAppsArg_validator,
     ListMemberAppsResult_validator,
@@ -17379,6 +18841,7 @@ linked_apps_list_member_linked_apps = bb.Route(
 )
 linked_apps_list_members_linked_apps = bb.Route(
     'linked_apps/list_members_linked_apps',
+    1,
     False,
     ListMembersAppsArg_validator,
     ListMembersAppsResult_validator,
@@ -17388,6 +18851,7 @@ linked_apps_list_members_linked_apps = bb.Route(
 )
 linked_apps_list_team_linked_apps = bb.Route(
     'linked_apps/list_team_linked_apps',
+    1,
     True,
     ListTeamAppsArg_validator,
     ListTeamAppsResult_validator,
@@ -17397,6 +18861,7 @@ linked_apps_list_team_linked_apps = bb.Route(
 )
 linked_apps_revoke_linked_app = bb.Route(
     'linked_apps/revoke_linked_app',
+    1,
     False,
     RevokeLinkedApiAppArg_validator,
     bv.Void(),
@@ -17406,6 +18871,7 @@ linked_apps_revoke_linked_app = bb.Route(
 )
 linked_apps_revoke_linked_app_batch = bb.Route(
     'linked_apps/revoke_linked_app_batch',
+    1,
     False,
     RevokeLinkedApiAppBatchArg_validator,
     RevokeLinkedAppBatchResult_validator,
@@ -17415,6 +18881,7 @@ linked_apps_revoke_linked_app_batch = bb.Route(
 )
 member_space_limits_excluded_users_add = bb.Route(
     'member_space_limits/excluded_users/add',
+    1,
     False,
     ExcludedUsersUpdateArg_validator,
     ExcludedUsersUpdateResult_validator,
@@ -17424,6 +18891,7 @@ member_space_limits_excluded_users_add = bb.Route(
 )
 member_space_limits_excluded_users_list = bb.Route(
     'member_space_limits/excluded_users/list',
+    1,
     False,
     ExcludedUsersListArg_validator,
     ExcludedUsersListResult_validator,
@@ -17433,6 +18901,7 @@ member_space_limits_excluded_users_list = bb.Route(
 )
 member_space_limits_excluded_users_list_continue = bb.Route(
     'member_space_limits/excluded_users/list/continue',
+    1,
     False,
     ExcludedUsersListContinueArg_validator,
     ExcludedUsersListResult_validator,
@@ -17442,6 +18911,7 @@ member_space_limits_excluded_users_list_continue = bb.Route(
 )
 member_space_limits_excluded_users_remove = bb.Route(
     'member_space_limits/excluded_users/remove',
+    1,
     False,
     ExcludedUsersUpdateArg_validator,
     ExcludedUsersUpdateResult_validator,
@@ -17451,6 +18921,7 @@ member_space_limits_excluded_users_remove = bb.Route(
 )
 member_space_limits_get_custom_quota = bb.Route(
     'member_space_limits/get_custom_quota',
+    1,
     False,
     CustomQuotaUsersArg_validator,
     bv.List(CustomQuotaResult_validator),
@@ -17460,6 +18931,7 @@ member_space_limits_get_custom_quota = bb.Route(
 )
 member_space_limits_remove_custom_quota = bb.Route(
     'member_space_limits/remove_custom_quota',
+    1,
     False,
     CustomQuotaUsersArg_validator,
     bv.List(RemoveCustomQuotaResult_validator),
@@ -17469,6 +18941,7 @@ member_space_limits_remove_custom_quota = bb.Route(
 )
 member_space_limits_set_custom_quota = bb.Route(
     'member_space_limits/set_custom_quota',
+    1,
     False,
     SetCustomQuotaArg_validator,
     bv.List(CustomQuotaResult_validator),
@@ -17478,6 +18951,7 @@ member_space_limits_set_custom_quota = bb.Route(
 )
 members_add = bb.Route(
     'members/add',
+    1,
     False,
     MembersAddArg_validator,
     MembersAddLaunch_validator,
@@ -17487,15 +18961,17 @@ members_add = bb.Route(
 )
 members_add_job_status_get = bb.Route(
     'members/add/job_status/get',
+    1,
     False,
-    async.PollArg_validator,
+    async_.PollArg_validator,
     MembersAddJobStatus_validator,
-    async.PollError_validator,
+    async_.PollError_validator,
     {'host': u'api',
      'style': u'rpc'},
 )
 members_get_info = bb.Route(
     'members/get_info',
+    1,
     False,
     MembersGetInfoArgs_validator,
     MembersGetInfoResult_validator,
@@ -17505,6 +18981,7 @@ members_get_info = bb.Route(
 )
 members_list = bb.Route(
     'members/list',
+    1,
     False,
     MembersListArg_validator,
     MembersListResult_validator,
@@ -17514,6 +18991,7 @@ members_list = bb.Route(
 )
 members_list_continue = bb.Route(
     'members/list/continue',
+    1,
     False,
     MembersListContinueArg_validator,
     MembersListResult_validator,
@@ -17521,8 +18999,29 @@ members_list_continue = bb.Route(
     {'host': u'api',
      'style': u'rpc'},
 )
+members_move_former_member_files = bb.Route(
+    'members/move_former_member_files',
+    1,
+    False,
+    MembersDataTransferArg_validator,
+    async_.LaunchEmptyResult_validator,
+    MembersTransferFormerMembersFilesError_validator,
+    {'host': u'api',
+     'style': u'rpc'},
+)
+members_move_former_member_files_job_status_check = bb.Route(
+    'members/move_former_member_files/job_status/check',
+    1,
+    False,
+    async_.PollArg_validator,
+    async_.PollEmptyResult_validator,
+    async_.PollError_validator,
+    {'host': u'api',
+     'style': u'rpc'},
+)
 members_recover = bb.Route(
     'members/recover',
+    1,
     False,
     MembersRecoverArg_validator,
     bv.Void(),
@@ -17532,24 +19031,27 @@ members_recover = bb.Route(
 )
 members_remove = bb.Route(
     'members/remove',
+    1,
     False,
     MembersRemoveArg_validator,
-    async.LaunchEmptyResult_validator,
+    async_.LaunchEmptyResult_validator,
     MembersRemoveError_validator,
     {'host': u'api',
      'style': u'rpc'},
 )
 members_remove_job_status_get = bb.Route(
     'members/remove/job_status/get',
+    1,
     False,
-    async.PollArg_validator,
-    async.PollEmptyResult_validator,
-    async.PollError_validator,
+    async_.PollArg_validator,
+    async_.PollEmptyResult_validator,
+    async_.PollError_validator,
     {'host': u'api',
      'style': u'rpc'},
 )
 members_send_welcome_email = bb.Route(
     'members/send_welcome_email',
+    1,
     False,
     UserSelectorArg_validator,
     bv.Void(),
@@ -17559,6 +19061,7 @@ members_send_welcome_email = bb.Route(
 )
 members_set_admin_permissions = bb.Route(
     'members/set_admin_permissions',
+    1,
     False,
     MembersSetPermissionsArg_validator,
     MembersSetPermissionsResult_validator,
@@ -17568,6 +19071,7 @@ members_set_admin_permissions = bb.Route(
 )
 members_set_profile = bb.Route(
     'members/set_profile',
+    1,
     False,
     MembersSetProfileArg_validator,
     TeamMemberInfo_validator,
@@ -17577,6 +19081,7 @@ members_set_profile = bb.Route(
 )
 members_suspend = bb.Route(
     'members/suspend',
+    1,
     False,
     MembersDeactivateArg_validator,
     bv.Void(),
@@ -17586,6 +19091,7 @@ members_suspend = bb.Route(
 )
 members_unsuspend = bb.Route(
     'members/unsuspend',
+    1,
     False,
     MembersUnsuspendArg_validator,
     bv.Void(),
@@ -17595,15 +19101,17 @@ members_unsuspend = bb.Route(
 )
 namespaces_list = bb.Route(
     'namespaces/list',
+    1,
     False,
     TeamNamespacesListArg_validator,
     TeamNamespacesListResult_validator,
-    bv.Void(),
+    TeamNamespacesListError_validator,
     {'host': u'api',
      'style': u'rpc'},
 )
 namespaces_list_continue = bb.Route(
     'namespaces/list/continue',
+    1,
     False,
     TeamNamespacesListContinueArg_validator,
     TeamNamespacesListResult_validator,
@@ -17613,6 +19121,7 @@ namespaces_list_continue = bb.Route(
 )
 properties_template_add = bb.Route(
     'properties/template/add',
+    1,
     True,
     file_properties.AddTemplateArg_validator,
     file_properties.AddTemplateResult_validator,
@@ -17622,6 +19131,7 @@ properties_template_add = bb.Route(
 )
 properties_template_get = bb.Route(
     'properties/template/get',
+    1,
     True,
     file_properties.GetTemplateArg_validator,
     file_properties.GetTemplateResult_validator,
@@ -17631,6 +19141,7 @@ properties_template_get = bb.Route(
 )
 properties_template_list = bb.Route(
     'properties/template/list',
+    1,
     True,
     bv.Void(),
     file_properties.ListTemplateResult_validator,
@@ -17640,6 +19151,7 @@ properties_template_list = bb.Route(
 )
 properties_template_update = bb.Route(
     'properties/template/update',
+    1,
     True,
     file_properties.UpdateTemplateArg_validator,
     file_properties.UpdateTemplateResult_validator,
@@ -17649,6 +19161,7 @@ properties_template_update = bb.Route(
 )
 reports_get_activity = bb.Route(
     'reports/get_activity',
+    1,
     False,
     DateRange_validator,
     GetActivityReport_validator,
@@ -17658,6 +19171,7 @@ reports_get_activity = bb.Route(
 )
 reports_get_devices = bb.Route(
     'reports/get_devices',
+    1,
     False,
     DateRange_validator,
     GetDevicesReport_validator,
@@ -17667,6 +19181,7 @@ reports_get_devices = bb.Route(
 )
 reports_get_membership = bb.Route(
     'reports/get_membership',
+    1,
     False,
     DateRange_validator,
     GetMembershipReport_validator,
@@ -17676,6 +19191,7 @@ reports_get_membership = bb.Route(
 )
 reports_get_storage = bb.Route(
     'reports/get_storage',
+    1,
     False,
     DateRange_validator,
     GetStorageReport_validator,
@@ -17685,6 +19201,7 @@ reports_get_storage = bb.Route(
 )
 team_folder_activate = bb.Route(
     'team_folder/activate',
+    1,
     False,
     TeamFolderIdArg_validator,
     TeamFolderMetadata_validator,
@@ -17694,6 +19211,7 @@ team_folder_activate = bb.Route(
 )
 team_folder_archive = bb.Route(
     'team_folder/archive',
+    1,
     False,
     TeamFolderArchiveArg_validator,
     TeamFolderArchiveLaunch_validator,
@@ -17703,15 +19221,17 @@ team_folder_archive = bb.Route(
 )
 team_folder_archive_check = bb.Route(
     'team_folder/archive/check',
+    1,
     False,
-    async.PollArg_validator,
+    async_.PollArg_validator,
     TeamFolderArchiveJobStatus_validator,
-    async.PollError_validator,
+    async_.PollError_validator,
     {'host': u'api',
      'style': u'rpc'},
 )
 team_folder_create = bb.Route(
     'team_folder/create',
+    1,
     False,
     TeamFolderCreateArg_validator,
     TeamFolderMetadata_validator,
@@ -17721,6 +19241,7 @@ team_folder_create = bb.Route(
 )
 team_folder_get_info = bb.Route(
     'team_folder/get_info',
+    1,
     False,
     TeamFolderIdListArg_validator,
     bv.List(TeamFolderGetInfoItem_validator),
@@ -17730,6 +19251,7 @@ team_folder_get_info = bb.Route(
 )
 team_folder_list = bb.Route(
     'team_folder/list',
+    1,
     False,
     TeamFolderListArg_validator,
     TeamFolderListResult_validator,
@@ -17739,6 +19261,7 @@ team_folder_list = bb.Route(
 )
 team_folder_list_continue = bb.Route(
     'team_folder/list/continue',
+    1,
     False,
     TeamFolderListContinueArg_validator,
     TeamFolderListResult_validator,
@@ -17748,6 +19271,7 @@ team_folder_list_continue = bb.Route(
 )
 team_folder_permanently_delete = bb.Route(
     'team_folder/permanently_delete',
+    1,
     False,
     TeamFolderIdArg_validator,
     bv.Void(),
@@ -17757,6 +19281,7 @@ team_folder_permanently_delete = bb.Route(
 )
 team_folder_rename = bb.Route(
     'team_folder/rename',
+    1,
     False,
     TeamFolderRenameArg_validator,
     TeamFolderMetadata_validator,
@@ -17764,8 +19289,19 @@ team_folder_rename = bb.Route(
     {'host': u'api',
      'style': u'rpc'},
 )
+team_folder_update_sync_settings = bb.Route(
+    'team_folder/update_sync_settings',
+    1,
+    False,
+    TeamFolderUpdateSyncSettingsArg_validator,
+    TeamFolderMetadata_validator,
+    TeamFolderUpdateSyncSettingsError_validator,
+    {'host': u'api',
+     'style': u'rpc'},
+)
 token_get_authenticated_admin = bb.Route(
     'token/get_authenticated_admin',
+    1,
     False,
     bv.Void(),
     TokenGetAuthenticatedAdminResult_validator,
@@ -17811,6 +19347,8 @@ ROUTES = {
     'members/get_info': members_get_info,
     'members/list': members_list,
     'members/list/continue': members_list_continue,
+    'members/move_former_member_files': members_move_former_member_files,
+    'members/move_former_member_files/job_status/check': members_move_former_member_files_job_status_check,
     'members/recover': members_recover,
     'members/remove': members_remove,
     'members/remove/job_status/get': members_remove_job_status_get,
@@ -17838,6 +19376,7 @@ ROUTES = {
     'team_folder/list/continue': team_folder_list_continue,
     'team_folder/permanently_delete': team_folder_permanently_delete,
     'team_folder/rename': team_folder_rename,
+    'team_folder/update_sync_settings': team_folder_update_sync_settings,
     'token/get_authenticated_admin': token_get_authenticated_admin,
 }
 

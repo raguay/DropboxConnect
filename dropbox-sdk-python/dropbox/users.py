@@ -10,7 +10,7 @@ This namespace contains endpoints and data types for user management.
 try:
     from . import stone_validators as bv
     from . import stone_base as bb
-except (SystemError, ValueError):
+except (ImportError, SystemError, ValueError):
     # Catch errors raised when importing a relative module when not in a package.
     # This makes testing this file directly (outside of a package) easier.
     import stone_validators as bv
@@ -19,15 +19,17 @@ except (SystemError, ValueError):
 try:
     from . import (
         common,
+        team_common,
         team_policies,
         users_common,
     )
-except (SystemError, ValueError):
+except (ImportError, SystemError, ValueError):
     import common
+    import team_common
     import team_policies
     import users_common
 
-class Account(object):
+class Account(bb.Struct):
     """
     The amount of detail revealed about an account depends on the user being
     queried and the user making the query.
@@ -235,6 +237,9 @@ class Account(object):
         self._disabled_value = None
         self._disabled_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(Account, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'Account(account_id={!r}, name={!r}, email={!r}, email_verified={!r}, disabled={!r}, profile_photo_url={!r})'.format(
             self._account_id_value,
@@ -341,6 +346,9 @@ class BasicAccount(Account):
     def team_member_id(self):
         self._team_member_id_value = None
         self._team_member_id_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(BasicAccount, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'BasicAccount(account_id={!r}, name={!r}, email={!r}, email_verified={!r}, disabled={!r}, is_teammate={!r}, profile_photo_url={!r}, team_member_id={!r})'.format(
@@ -610,7 +618,7 @@ class FullAccount(Account):
         """
         What type of account this user has.
 
-        :rtype: users_common.AccountType_validator
+        :rtype: users_common.AccountType
         """
         if self._account_type_present:
             return self._account_type_value
@@ -633,7 +641,7 @@ class FullAccount(Account):
         """
         The root info for this account.
 
-        :rtype: common.RootInfo_validator
+        :rtype: common.RootInfo
         """
         if self._root_info_present:
             return self._root_info_value
@@ -650,6 +658,9 @@ class FullAccount(Account):
     def root_info(self):
         self._root_info_value = None
         self._root_info_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(FullAccount, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'FullAccount(account_id={!r}, name={!r}, email={!r}, email_verified={!r}, disabled={!r}, locale={!r}, referral_link={!r}, is_paired={!r}, account_type={!r}, root_info={!r}, profile_photo_url={!r}, country={!r}, team={!r}, team_member_id={!r})'.format(
@@ -671,7 +682,7 @@ class FullAccount(Account):
 
 FullAccount_validator = bv.Struct(FullAccount)
 
-class Team(object):
+class Team(bb.Struct):
     """
     Information about a team.
 
@@ -746,6 +757,9 @@ class Team(object):
         self._name_value = None
         self._name_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(Team, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'Team(id={!r}, name={!r})'.format(
             self._id_value,
@@ -793,7 +807,7 @@ class FullTeam(Team):
         """
         Team policies governing sharing.
 
-        :rtype: team_policies.TeamSharingPolicies_validator
+        :rtype: team_policies.TeamSharingPolicies
         """
         if self._sharing_policies_present:
             return self._sharing_policies_value
@@ -816,7 +830,7 @@ class FullTeam(Team):
         """
         Team policy governing the use of the Office Add-In.
 
-        :rtype: team_policies.OfficeAddInPolicy_validator
+        :rtype: team_policies.OfficeAddInPolicy
         """
         if self._office_addin_policy_present:
             return self._office_addin_policy_value
@@ -834,6 +848,9 @@ class FullTeam(Team):
         self._office_addin_policy_value = None
         self._office_addin_policy_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(FullTeam, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'FullTeam(id={!r}, name={!r}, sharing_policies={!r}, office_addin_policy={!r})'.format(
             self._id_value,
@@ -844,7 +861,7 @@ class FullTeam(Team):
 
 FullTeam_validator = bv.Struct(FullTeam)
 
-class GetAccountArg(object):
+class GetAccountArg(bb.Struct):
     """
     :ivar account_id: A user's account identifier.
     """
@@ -886,6 +903,9 @@ class GetAccountArg(object):
         self._account_id_value = None
         self._account_id_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GetAccountArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GetAccountArg(account_id={!r})'.format(
             self._account_id_value,
@@ -893,7 +913,7 @@ class GetAccountArg(object):
 
 GetAccountArg_validator = bv.Struct(GetAccountArg)
 
-class GetAccountBatchArg(object):
+class GetAccountBatchArg(bb.Struct):
     """
     :ivar account_ids: List of user account identifiers.  Should not contain any
         duplicate account IDs.
@@ -936,6 +956,9 @@ class GetAccountBatchArg(object):
     def account_ids(self):
         self._account_ids_value = None
         self._account_ids_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GetAccountBatchArg, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'GetAccountBatchArg(account_ids={!r})'.format(
@@ -998,6 +1021,9 @@ class GetAccountBatchError(bb.Union):
             raise AttributeError("tag 'no_account' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GetAccountBatchError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GetAccountBatchError(%r, %r)' % (self._tag, self._value)
 
@@ -1034,12 +1060,15 @@ class GetAccountError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GetAccountError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GetAccountError(%r, %r)' % (self._tag, self._value)
 
 GetAccountError_validator = bv.Union(GetAccountError)
 
-class IndividualSpaceAllocation(object):
+class IndividualSpaceAllocation(bb.Struct):
     """
     :ivar allocated: The total space allocated to the user's account (bytes).
     """
@@ -1063,7 +1092,7 @@ class IndividualSpaceAllocation(object):
         """
         The total space allocated to the user's account (bytes).
 
-        :rtype: long
+        :rtype: int
         """
         if self._allocated_present:
             return self._allocated_value
@@ -1081,6 +1110,9 @@ class IndividualSpaceAllocation(object):
         self._allocated_value = None
         self._allocated_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(IndividualSpaceAllocation, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'IndividualSpaceAllocation(allocated={!r})'.format(
             self._allocated_value,
@@ -1088,7 +1120,7 @@ class IndividualSpaceAllocation(object):
 
 IndividualSpaceAllocation_validator = bv.Struct(IndividualSpaceAllocation)
 
-class Name(object):
+class Name(bb.Struct):
     """
     Representations for a person's name to assist with internationalization.
 
@@ -1264,6 +1296,9 @@ class Name(object):
         self._abbreviated_name_value = None
         self._abbreviated_name_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(Name, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'Name(given_name={!r}, surname={!r}, familiar_name={!r}, display_name={!r}, abbreviated_name={!r})'.format(
             self._given_name_value,
@@ -1363,12 +1398,15 @@ class SpaceAllocation(bb.Union):
             raise AttributeError("tag 'team' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(SpaceAllocation, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'SpaceAllocation(%r, %r)' % (self._tag, self._value)
 
 SpaceAllocation_validator = bv.Union(SpaceAllocation)
 
-class SpaceUsage(object):
+class SpaceUsage(bb.Struct):
     """
     Information about a user's space usage and quota.
 
@@ -1402,7 +1440,7 @@ class SpaceUsage(object):
         """
         The user's total space usage (bytes).
 
-        :rtype: long
+        :rtype: int
         """
         if self._used_present:
             return self._used_value
@@ -1443,6 +1481,9 @@ class SpaceUsage(object):
         self._allocation_value = None
         self._allocation_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(SpaceUsage, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'SpaceUsage(used={!r}, allocation={!r})'.format(
             self._used_value,
@@ -1451,10 +1492,15 @@ class SpaceUsage(object):
 
 SpaceUsage_validator = bv.Struct(SpaceUsage)
 
-class TeamSpaceAllocation(object):
+class TeamSpaceAllocation(bb.Struct):
     """
     :ivar used: The total space currently used by the user's team (bytes).
     :ivar allocated: The total space allocated to the user's team (bytes).
+    :ivar user_within_team_space_allocated: The total space allocated to the
+        user within its team allocated space (0 means that no restriction is
+        imposed on the user's quota within its team).
+    :ivar user_within_team_space_limit_type: The type of the space limit imposed
+        on the team member (off, alert_only, stop_sync).
     """
 
     __slots__ = [
@@ -1462,28 +1508,42 @@ class TeamSpaceAllocation(object):
         '_used_present',
         '_allocated_value',
         '_allocated_present',
+        '_user_within_team_space_allocated_value',
+        '_user_within_team_space_allocated_present',
+        '_user_within_team_space_limit_type_value',
+        '_user_within_team_space_limit_type_present',
     ]
 
     _has_required_fields = True
 
     def __init__(self,
                  used=None,
-                 allocated=None):
+                 allocated=None,
+                 user_within_team_space_allocated=None,
+                 user_within_team_space_limit_type=None):
         self._used_value = None
         self._used_present = False
         self._allocated_value = None
         self._allocated_present = False
+        self._user_within_team_space_allocated_value = None
+        self._user_within_team_space_allocated_present = False
+        self._user_within_team_space_limit_type_value = None
+        self._user_within_team_space_limit_type_present = False
         if used is not None:
             self.used = used
         if allocated is not None:
             self.allocated = allocated
+        if user_within_team_space_allocated is not None:
+            self.user_within_team_space_allocated = user_within_team_space_allocated
+        if user_within_team_space_limit_type is not None:
+            self.user_within_team_space_limit_type = user_within_team_space_limit_type
 
     @property
     def used(self):
         """
         The total space currently used by the user's team (bytes).
 
-        :rtype: long
+        :rtype: int
         """
         if self._used_present:
             return self._used_value
@@ -1506,7 +1566,7 @@ class TeamSpaceAllocation(object):
         """
         The total space allocated to the user's team (bytes).
 
-        :rtype: long
+        :rtype: int
         """
         if self._allocated_present:
             return self._allocated_value
@@ -1524,10 +1584,64 @@ class TeamSpaceAllocation(object):
         self._allocated_value = None
         self._allocated_present = False
 
+    @property
+    def user_within_team_space_allocated(self):
+        """
+        The total space allocated to the user within its team allocated space (0
+        means that no restriction is imposed on the user's quota within its
+        team).
+
+        :rtype: int
+        """
+        if self._user_within_team_space_allocated_present:
+            return self._user_within_team_space_allocated_value
+        else:
+            raise AttributeError("missing required field 'user_within_team_space_allocated'")
+
+    @user_within_team_space_allocated.setter
+    def user_within_team_space_allocated(self, val):
+        val = self._user_within_team_space_allocated_validator.validate(val)
+        self._user_within_team_space_allocated_value = val
+        self._user_within_team_space_allocated_present = True
+
+    @user_within_team_space_allocated.deleter
+    def user_within_team_space_allocated(self):
+        self._user_within_team_space_allocated_value = None
+        self._user_within_team_space_allocated_present = False
+
+    @property
+    def user_within_team_space_limit_type(self):
+        """
+        The type of the space limit imposed on the team member (off, alert_only,
+        stop_sync).
+
+        :rtype: team_common.MemberSpaceLimitType
+        """
+        if self._user_within_team_space_limit_type_present:
+            return self._user_within_team_space_limit_type_value
+        else:
+            raise AttributeError("missing required field 'user_within_team_space_limit_type'")
+
+    @user_within_team_space_limit_type.setter
+    def user_within_team_space_limit_type(self, val):
+        self._user_within_team_space_limit_type_validator.validate_type_only(val)
+        self._user_within_team_space_limit_type_value = val
+        self._user_within_team_space_limit_type_present = True
+
+    @user_within_team_space_limit_type.deleter
+    def user_within_team_space_limit_type(self):
+        self._user_within_team_space_limit_type_value = None
+        self._user_within_team_space_limit_type_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamSpaceAllocation, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
-        return 'TeamSpaceAllocation(used={!r}, allocated={!r})'.format(
+        return 'TeamSpaceAllocation(used={!r}, allocated={!r}, user_within_team_space_allocated={!r}, user_within_team_space_limit_type={!r})'.format(
             self._used_value,
             self._allocated_value,
+            self._user_within_team_space_allocated_value,
+            self._user_within_team_space_limit_type_value,
         )
 
 TeamSpaceAllocation_validator = bv.Struct(TeamSpaceAllocation)
@@ -1693,17 +1807,24 @@ SpaceUsage._all_fields_ = [
 
 TeamSpaceAllocation._used_validator = bv.UInt64()
 TeamSpaceAllocation._allocated_validator = bv.UInt64()
+TeamSpaceAllocation._user_within_team_space_allocated_validator = bv.UInt64()
+TeamSpaceAllocation._user_within_team_space_limit_type_validator = team_common.MemberSpaceLimitType_validator
 TeamSpaceAllocation._all_field_names_ = set([
     'used',
     'allocated',
+    'user_within_team_space_allocated',
+    'user_within_team_space_limit_type',
 ])
 TeamSpaceAllocation._all_fields_ = [
     ('used', TeamSpaceAllocation._used_validator),
     ('allocated', TeamSpaceAllocation._allocated_validator),
+    ('user_within_team_space_allocated', TeamSpaceAllocation._user_within_team_space_allocated_validator),
+    ('user_within_team_space_limit_type', TeamSpaceAllocation._user_within_team_space_limit_type_validator),
 ]
 
 get_account = bb.Route(
     'get_account',
+    1,
     False,
     GetAccountArg_validator,
     BasicAccount_validator,
@@ -1713,6 +1834,7 @@ get_account = bb.Route(
 )
 get_account_batch = bb.Route(
     'get_account_batch',
+    1,
     False,
     GetAccountBatchArg_validator,
     GetAccountBatchResult_validator,
@@ -1722,6 +1844,7 @@ get_account_batch = bb.Route(
 )
 get_current_account = bb.Route(
     'get_current_account',
+    1,
     False,
     bv.Void(),
     FullAccount_validator,
@@ -1731,6 +1854,7 @@ get_current_account = bb.Route(
 )
 get_space_usage = bb.Route(
     'get_space_usage',
+    1,
     False,
     bv.Void(),
     SpaceUsage_validator,

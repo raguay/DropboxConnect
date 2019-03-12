@@ -6,7 +6,7 @@
 try:
     from . import stone_validators as bv
     from . import stone_base as bb
-except (SystemError, ValueError):
+except (ImportError, SystemError, ValueError):
     # Catch errors raised when importing a relative module when not in a package.
     # This makes testing this file directly (outside of a package) easier.
     import stone_validators as bv
@@ -116,6 +116,9 @@ class PathRoot(bb.Union):
             raise AttributeError("tag 'namespace_id' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(PathRoot, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'PathRoot(%r, %r)' % (self._tag, self._value)
 
@@ -187,19 +190,23 @@ class PathRootError(bb.Union):
             raise AttributeError("tag 'invalid_root' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(PathRootError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'PathRootError(%r, %r)' % (self._tag, self._value)
 
 PathRootError_validator = bv.Union(PathRootError)
 
-class RootInfo(object):
+class RootInfo(bb.Struct):
     """
     Information about current user's root.
 
-    :ivar root_namespace_id: The namespace id for user's root namespace. It will
-        be the namespace id of the shared team root if the user is member of a
-        CDM team. Otherwise it will be same as ``RootInfo.home_namespace_id``.
-    :ivar home_namespace_id: The namespace id for user's home namespace.
+    :ivar root_namespace_id: The namespace ID for user's root namespace. It will
+        be the namespace ID of the shared team root if the user is member of a
+        team with a separate team root. Otherwise it will be same as
+        ``RootInfo.home_namespace_id``.
+    :ivar home_namespace_id: The namespace ID for user's home namespace.
     """
 
     __slots__ = [
@@ -226,9 +233,9 @@ class RootInfo(object):
     @property
     def root_namespace_id(self):
         """
-        The namespace id for user's root namespace. It will be the namespace id
-        of the shared team root if the user is member of a CDM team. Otherwise
-        it will be same as ``RootInfo.home_namespace_id``.
+        The namespace ID for user's root namespace. It will be the namespace ID
+        of the shared team root if the user is member of a team with a separate
+        team root. Otherwise it will be same as ``RootInfo.home_namespace_id``.
 
         :rtype: str
         """
@@ -251,7 +258,7 @@ class RootInfo(object):
     @property
     def home_namespace_id(self):
         """
-        The namespace id for user's home namespace.
+        The namespace ID for user's home namespace.
 
         :rtype: str
         """
@@ -271,6 +278,9 @@ class RootInfo(object):
         self._home_namespace_id_value = None
         self._home_namespace_id_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(RootInfo, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'RootInfo(root_namespace_id={!r}, home_namespace_id={!r})'.format(
             self._root_namespace_id_value,
@@ -281,7 +291,7 @@ RootInfo_validator = bv.StructTree(RootInfo)
 
 class TeamRootInfo(RootInfo):
     """
-    Root info when user is member of a CDM team.
+    Root info when user is member of a team with a separate root namespace ID.
 
     :ivar home_path: The path for user's home directory under the shared team
         root.
@@ -328,6 +338,9 @@ class TeamRootInfo(RootInfo):
         self._home_path_value = None
         self._home_path_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamRootInfo, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TeamRootInfo(root_namespace_id={!r}, home_namespace_id={!r}, home_path={!r})'.format(
             self._root_namespace_id_value,
@@ -339,7 +352,8 @@ TeamRootInfo_validator = bv.Struct(TeamRootInfo)
 
 class UserRootInfo(RootInfo):
     """
-    Root info when user is not member of a CDM team.
+    Root info when user is not member of a team or the user is a member of a
+    team and the team does not have a separate root namespace.
     """
 
     __slots__ = [
@@ -353,6 +367,9 @@ class UserRootInfo(RootInfo):
         super(UserRootInfo, self).__init__(root_namespace_id,
                                            home_namespace_id)
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(UserRootInfo, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'UserRootInfo(root_namespace_id={!r}, home_namespace_id={!r})'.format(
             self._root_namespace_id_value,
@@ -363,9 +380,9 @@ UserRootInfo_validator = bv.Struct(UserRootInfo)
 
 Date_validator = bv.Timestamp(u'%Y-%m-%d')
 DisplayName_validator = bv.String(min_length=1, pattern=u'[^/:?*<>"|]*')
-DisplayNameLegacy_validator = bv.String(min_length=1)
+DisplayNameLegacy_validator = bv.String()
 DropboxTimestamp_validator = bv.Timestamp(u'%Y-%m-%dT%H:%M:%SZ')
-EmailAddress_validator = bv.String(max_length=255, pattern=u"^['&A-Za-z0-9._%+-]+@[A-Za-z0-9-][A-Za-z0-9.-]*.[A-Za-z]{2,15}$")
+EmailAddress_validator = bv.String(max_length=255, pattern=u"^['&A-Za-z0-9._%+-]+@[A-Za-z0-9-][A-Za-z0-9.-]*\\.[A-Za-z]{2,15}$")
 # A ISO639-1 code.
 LanguageCode_validator = bv.String(min_length=2)
 NamePart_validator = bv.String(min_length=1, max_length=100, pattern=u'[^/:?*<>"|]*')

@@ -10,7 +10,7 @@ This namespace contains endpoints and data types for creating and managing share
 try:
     from . import stone_validators as bv
     from . import stone_base as bb
-except (SystemError, ValueError):
+except (ImportError, SystemError, ValueError):
     # Catch errors raised when importing a relative module when not in a package.
     # This makes testing this file directly (outside of a package) easier.
     import stone_validators as bv
@@ -18,20 +18,76 @@ except (SystemError, ValueError):
 
 try:
     from . import (
-        async,
+        async_,
         common,
         files,
+        seen_state,
         team_common,
         users,
         users_common,
     )
-except (SystemError, ValueError):
-    import async
+except (ImportError, SystemError, ValueError):
+    import async_
     import common
     import files
+    import seen_state
     import team_common
     import users
     import users_common
+
+class AccessInheritance(bb.Union):
+    """
+    Information about the inheritance policy of a shared folder.
+
+    This class acts as a tagged union. Only one of the ``is_*`` methods will
+    return true. To get the associated value of a tag (if one exists), use the
+    corresponding ``get_*`` method.
+
+    :ivar inherit: The shared folder inherits its members from the parent
+        folder.
+    :ivar no_inherit: The shared folder does not inherit its members from the
+        parent folder.
+    """
+
+    _catch_all = 'other'
+    # Attribute is overwritten below the class definition
+    inherit = None
+    # Attribute is overwritten below the class definition
+    no_inherit = None
+    # Attribute is overwritten below the class definition
+    other = None
+
+    def is_inherit(self):
+        """
+        Check if the union tag is ``inherit``.
+
+        :rtype: bool
+        """
+        return self._tag == 'inherit'
+
+    def is_no_inherit(self):
+        """
+        Check if the union tag is ``no_inherit``.
+
+        :rtype: bool
+        """
+        return self._tag == 'no_inherit'
+
+    def is_other(self):
+        """
+        Check if the union tag is ``other``.
+
+        :rtype: bool
+        """
+        return self._tag == 'other'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(AccessInheritance, self)._process_custom_annotations(annotation_type, processor)
+
+    def __repr__(self):
+        return 'AccessInheritance(%r, %r)' % (self._tag, self._value)
+
+AccessInheritance_validator = bv.Union(AccessInheritance)
 
 class AccessLevel(bb.Union):
     """
@@ -102,6 +158,9 @@ class AccessLevel(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(AccessLevel, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'AccessLevel(%r, %r)' % (self._tag, self._value)
 
@@ -153,12 +212,15 @@ class AclUpdatePolicy(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(AclUpdatePolicy, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'AclUpdatePolicy(%r, %r)' % (self._tag, self._value)
 
 AclUpdatePolicy_validator = bv.Union(AclUpdatePolicy)
 
-class AddFileMemberArgs(object):
+class AddFileMemberArgs(bb.Struct):
     """
     Arguments for :meth:`dropbox.dropbox.Dropbox.sharing_add_file_member`.
 
@@ -369,6 +431,9 @@ class AddFileMemberArgs(object):
         self._add_message_as_comment_value = None
         self._add_message_as_comment_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(AddFileMemberArgs, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'AddFileMemberArgs(file={!r}, members={!r}, custom_message={!r}, quiet={!r}, access_level={!r}, add_message_as_comment={!r})'.format(
             self._file_value,
@@ -484,12 +549,15 @@ class AddFileMemberError(bb.Union):
             raise AttributeError("tag 'access_error' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(AddFileMemberError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'AddFileMemberError(%r, %r)' % (self._tag, self._value)
 
 AddFileMemberError_validator = bv.Union(AddFileMemberError)
 
-class AddFolderMemberArg(object):
+class AddFolderMemberArg(bb.Struct):
     """
     :ivar shared_folder_id: The ID for the shared folder.
     :ivar members: The intended list of members to add.  Added members will
@@ -632,6 +700,9 @@ class AddFolderMemberArg(object):
         self._custom_message_value = None
         self._custom_message_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(AddFolderMemberArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'AddFolderMemberArg(shared_folder_id={!r}, members={!r}, quiet={!r}, custom_message={!r})'.format(
             self._shared_folder_id_value,
@@ -654,8 +725,8 @@ class AddFolderMemberError(bb.Union):
         contains a bad invitation recipient.
     :ivar cant_share_outside_team: Your team policy does not allow sharing
         outside of the team.
-    :ivar long too_many_members: The value is the member limit that was reached.
-    :ivar long too_many_pending_invites: The value is the pending invite limit
+    :ivar int too_many_members: The value is the member limit that was reached.
+    :ivar int too_many_pending_invites: The value is the pending invite limit
         that was reached.
     :ivar rate_limit: The current user has hit the limit of invites they can
         send per day. Try again in 24 hours.
@@ -716,7 +787,7 @@ class AddFolderMemberError(bb.Union):
         Create an instance of this class set to the ``too_many_members`` tag
         with value ``val``.
 
-        :param long val:
+        :param int val:
         :rtype: AddFolderMemberError
         """
         return cls('too_many_members', val)
@@ -727,7 +798,7 @@ class AddFolderMemberError(bb.Union):
         Create an instance of this class set to the ``too_many_pending_invites``
         tag with value ``val``.
 
-        :param long val:
+        :param int val:
         :rtype: AddFolderMemberError
         """
         return cls('too_many_pending_invites', val)
@@ -858,7 +929,7 @@ class AddFolderMemberError(bb.Union):
 
         Only call this if :meth:`is_too_many_members` is true.
 
-        :rtype: long
+        :rtype: int
         """
         if not self.is_too_many_members():
             raise AttributeError("tag 'too_many_members' not set")
@@ -870,18 +941,21 @@ class AddFolderMemberError(bb.Union):
 
         Only call this if :meth:`is_too_many_pending_invites` is true.
 
-        :rtype: long
+        :rtype: int
         """
         if not self.is_too_many_pending_invites():
             raise AttributeError("tag 'too_many_pending_invites' not set")
         return self._value
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(AddFolderMemberError, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'AddFolderMemberError(%r, %r)' % (self._tag, self._value)
 
 AddFolderMemberError_validator = bv.Union(AddFolderMemberError)
 
-class AddMember(object):
+class AddMember(bb.Struct):
     """
     The member and type of access the member should have when added to a shared
     folder.
@@ -958,6 +1032,9 @@ class AddMember(object):
     def access_level(self):
         self._access_level_value = None
         self._access_level_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(AddMember, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'AddMember(member={!r}, access_level={!r})'.format(
@@ -1124,12 +1201,15 @@ class AddMemberSelectorError(bb.Union):
             raise AttributeError("tag 'unverified_dropbox_id' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(AddMemberSelectorError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'AddMemberSelectorError(%r, %r)' % (self._tag, self._value)
 
 AddMemberSelectorError_validator = bv.Union(AddMemberSelectorError)
 
-class AudienceExceptionContentInfo(object):
+class AudienceExceptionContentInfo(bb.Struct):
     """
     Information about the content that has a link audience different than that
     of this folder.
@@ -1174,6 +1254,9 @@ class AudienceExceptionContentInfo(object):
         self._name_value = None
         self._name_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(AudienceExceptionContentInfo, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'AudienceExceptionContentInfo(name={!r})'.format(
             self._name_value,
@@ -1181,7 +1264,7 @@ class AudienceExceptionContentInfo(object):
 
 AudienceExceptionContentInfo_validator = bv.Struct(AudienceExceptionContentInfo)
 
-class AudienceExceptions(object):
+class AudienceExceptions(bb.Struct):
     """
     The total count and truncated list of information of content inside this
     folder that has a different audience than the link on this folder. This is
@@ -1216,7 +1299,7 @@ class AudienceExceptions(object):
     @property
     def count(self):
         """
-        :rtype: long
+        :rtype: int
         """
         if self._count_present:
             return self._count_value
@@ -1259,6 +1342,9 @@ class AudienceExceptions(object):
         self._exceptions_value = None
         self._exceptions_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(AudienceExceptions, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'AudienceExceptions(count={!r}, exceptions={!r})'.format(
             self._count_value,
@@ -1267,7 +1353,7 @@ class AudienceExceptions(object):
 
 AudienceExceptions_validator = bv.Struct(AudienceExceptions)
 
-class AudienceRestrictingSharedFolder(object):
+class AudienceRestrictingSharedFolder(bb.Struct):
     """
     Information about the shared folder that prevents the link audience for this
     link from being more restrictive.
@@ -1374,6 +1460,9 @@ class AudienceRestrictingSharedFolder(object):
         self._audience_value = None
         self._audience_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(AudienceRestrictingSharedFolder, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'AudienceRestrictingSharedFolder(shared_folder_id={!r}, name={!r}, audience={!r})'.format(
             self._shared_folder_id_value,
@@ -1383,7 +1472,7 @@ class AudienceRestrictingSharedFolder(object):
 
 AudienceRestrictingSharedFolder_validator = bv.Struct(AudienceRestrictingSharedFolder)
 
-class ChangeFileMemberAccessArgs(object):
+class ChangeFileMemberAccessArgs(bb.Struct):
     """
     Arguments for
     :meth:`dropbox.dropbox.Dropbox.sharing_change_file_member_access`.
@@ -1490,6 +1579,9 @@ class ChangeFileMemberAccessArgs(object):
         self._access_level_value = None
         self._access_level_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ChangeFileMemberAccessArgs, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ChangeFileMemberAccessArgs(file={!r}, member={!r}, access_level={!r})'.format(
             self._file_value,
@@ -1499,7 +1591,7 @@ class ChangeFileMemberAccessArgs(object):
 
 ChangeFileMemberAccessArgs_validator = bv.Struct(ChangeFileMemberAccessArgs)
 
-class LinkMetadata(object):
+class LinkMetadata(bb.Struct):
     """
     Metadata for a shared link. This can be either a :class:`PathLinkMetadata`
     or :class:`CollectionLinkMetadata`.
@@ -1609,6 +1701,9 @@ class LinkMetadata(object):
         self._expires_value = None
         self._expires_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(LinkMetadata, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'LinkMetadata(url={!r}, visibility={!r}, expires={!r})'.format(
             self._url_value,
@@ -1636,6 +1731,9 @@ class CollectionLinkMetadata(LinkMetadata):
                                                      visibility,
                                                      expires)
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(CollectionLinkMetadata, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'CollectionLinkMetadata(url={!r}, visibility={!r}, expires={!r})'.format(
             self._url_value,
@@ -1645,7 +1743,7 @@ class CollectionLinkMetadata(LinkMetadata):
 
 CollectionLinkMetadata_validator = bv.Struct(CollectionLinkMetadata)
 
-class CreateSharedLinkArg(object):
+class CreateSharedLinkArg(bb.Struct):
     """
     :ivar path: The path to share.
     :ivar short_url: Whether to return a shortened URL.
@@ -1757,6 +1855,9 @@ class CreateSharedLinkArg(object):
         self._pending_upload_value = None
         self._pending_upload_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(CreateSharedLinkArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'CreateSharedLinkArg(path={!r}, short_url={!r}, pending_upload={!r})'.format(
             self._path_value,
@@ -1783,7 +1884,7 @@ class CreateSharedLinkError(bb.Union):
         Create an instance of this class set to the ``path`` tag with value
         ``val``.
 
-        :param files.LookupError_validator val:
+        :param files.LookupError val:
         :rtype: CreateSharedLinkError
         """
         return cls('path', val)
@@ -1808,18 +1909,21 @@ class CreateSharedLinkError(bb.Union):
         """
         Only call this if :meth:`is_path` is true.
 
-        :rtype: files.LookupError_validator
+        :rtype: files.LookupError
         """
         if not self.is_path():
             raise AttributeError("tag 'path' not set")
         return self._value
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(CreateSharedLinkError, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'CreateSharedLinkError(%r, %r)' % (self._tag, self._value)
 
 CreateSharedLinkError_validator = bv.Union(CreateSharedLinkError)
 
-class CreateSharedLinkWithSettingsArg(object):
+class CreateSharedLinkWithSettingsArg(bb.Struct):
     """
     :ivar path: The path to be shared by the shared link.
     :ivar settings: The requested settings for the newly created shared link.
@@ -1895,6 +1999,9 @@ class CreateSharedLinkWithSettingsArg(object):
         self._settings_value = None
         self._settings_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(CreateSharedLinkWithSettingsArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'CreateSharedLinkWithSettingsArg(path={!r}, settings={!r})'.format(
             self._path_value,
@@ -1932,7 +2039,7 @@ class CreateSharedLinkWithSettingsError(bb.Union):
         Create an instance of this class set to the ``path`` tag with value
         ``val``.
 
-        :param files.LookupError_validator val:
+        :param files.LookupError val:
         :rtype: CreateSharedLinkWithSettingsError
         """
         return cls('path', val)
@@ -1992,7 +2099,7 @@ class CreateSharedLinkWithSettingsError(bb.Union):
         """
         Only call this if :meth:`is_path` is true.
 
-        :rtype: files.LookupError_validator
+        :rtype: files.LookupError
         """
         if not self.is_path():
             raise AttributeError("tag 'path' not set")
@@ -2010,12 +2117,15 @@ class CreateSharedLinkWithSettingsError(bb.Union):
             raise AttributeError("tag 'settings_error' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(CreateSharedLinkWithSettingsError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'CreateSharedLinkWithSettingsError(%r, %r)' % (self._tag, self._value)
 
 CreateSharedLinkWithSettingsError_validator = bv.Union(CreateSharedLinkWithSettingsError)
 
-class SharedContentLinkMetadataBase(object):
+class SharedContentLinkMetadataBase(bb.Struct):
     """
     :ivar access_level: The access level on the link for this file.
     :ivar audience_options: The audience options that are available for the
@@ -2265,6 +2375,9 @@ class SharedContentLinkMetadataBase(object):
         self._password_protected_value = None
         self._password_protected_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(SharedContentLinkMetadataBase, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'SharedContentLinkMetadataBase(audience_options={!r}, current_audience={!r}, link_permissions={!r}, password_protected={!r}, access_level={!r}, audience_restricting_shared_folder={!r}, expiry={!r})'.format(
             self._audience_options_value,
@@ -2305,6 +2418,9 @@ class ExpectedSharedContentLinkMetadata(SharedContentLinkMetadataBase):
                                                                 audience_restricting_shared_folder,
                                                                 expiry)
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ExpectedSharedContentLinkMetadata, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ExpectedSharedContentLinkMetadata(audience_options={!r}, current_audience={!r}, link_permissions={!r}, password_protected={!r}, access_level={!r}, audience_restricting_shared_folder={!r}, expiry={!r})'.format(
             self._audience_options_value,
@@ -2332,6 +2448,7 @@ class FileAction(bb.Union):
     :ivar invite_viewer: Add a member with view permissions.
     :ivar invite_viewer_no_comment: Add a member with view permissions but no
         comment permissions.
+    :ivar invite_editor: Add a member with edit permissions.
     :ivar unshare: Stop sharing this file.
     :ivar relinquish_membership: Relinquish one's own membership to the file.
     :ivar share_link: Use create_link instead.
@@ -2349,6 +2466,8 @@ class FileAction(bb.Union):
     invite_viewer = None
     # Attribute is overwritten below the class definition
     invite_viewer_no_comment = None
+    # Attribute is overwritten below the class definition
+    invite_editor = None
     # Attribute is overwritten below the class definition
     unshare = None
     # Attribute is overwritten below the class definition
@@ -2400,6 +2519,14 @@ class FileAction(bb.Union):
         """
         return self._tag == 'invite_viewer_no_comment'
 
+    def is_invite_editor(self):
+        """
+        Check if the union tag is ``invite_editor``.
+
+        :rtype: bool
+        """
+        return self._tag == 'invite_editor'
+
     def is_unshare(self):
         """
         Check if the union tag is ``unshare``.
@@ -2439,6 +2566,9 @@ class FileAction(bb.Union):
         :rtype: bool
         """
         return self._tag == 'other'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(FileAction, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'FileAction(%r, %r)' % (self._tag, self._value)
@@ -2563,12 +2693,15 @@ class FileErrorResult(bb.Union):
             raise AttributeError("tag 'permission_denied_error' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(FileErrorResult, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'FileErrorResult(%r, %r)' % (self._tag, self._value)
 
 FileErrorResult_validator = bv.Union(FileErrorResult)
 
-class SharedLinkMetadata(object):
+class SharedLinkMetadata(bb.Struct):
     """
     The metadata of a shared link.
 
@@ -2834,7 +2967,7 @@ class SharedLinkMetadata(object):
         present if the content's owner is a team member and the content's owner
         team is different from the link's owner team.
 
-        :rtype: users.Team_validator
+        :rtype: users.Team
         """
         if self._content_owner_team_info_present:
             return self._content_owner_team_info_value
@@ -2854,6 +2987,9 @@ class SharedLinkMetadata(object):
     def content_owner_team_info(self):
         self._content_owner_team_info_value = None
         self._content_owner_team_info_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(SharedLinkMetadata, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'SharedLinkMetadata(url={!r}, name={!r}, link_permissions={!r}, id={!r}, expires={!r}, path_lower={!r}, team_member_info={!r}, content_owner_team_info={!r})'.format(
@@ -3016,7 +3152,7 @@ class FileLinkMetadata(SharedLinkMetadata):
         """
         The file size in bytes.
 
-        :rtype: long
+        :rtype: int
         """
         if self._size_present:
             return self._size_value
@@ -3033,6 +3169,9 @@ class FileLinkMetadata(SharedLinkMetadata):
     def size(self):
         self._size_value = None
         self._size_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(FileLinkMetadata, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'FileLinkMetadata(url={!r}, name={!r}, link_permissions={!r}, client_modified={!r}, server_modified={!r}, rev={!r}, size={!r}, id={!r}, expires={!r}, path_lower={!r}, team_member_info={!r}, content_owner_team_info={!r})'.format(
@@ -3165,6 +3304,9 @@ class FileMemberActionError(bb.Union):
             raise AttributeError("tag 'no_explicit_access' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(FileMemberActionError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'FileMemberActionError(%r, %r)' % (self._tag, self._value)
 
@@ -3248,12 +3390,15 @@ class FileMemberActionIndividualResult(bb.Union):
             raise AttributeError("tag 'member_error' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(FileMemberActionIndividualResult, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'FileMemberActionIndividualResult(%r, %r)' % (self._tag, self._value)
 
 FileMemberActionIndividualResult_validator = bv.Union(FileMemberActionIndividualResult)
 
-class FileMemberActionResult(object):
+class FileMemberActionResult(bb.Struct):
     """
     Per-member result for
     :meth:`dropbox.dropbox.Dropbox.sharing_add_file_member` or
@@ -3329,6 +3474,9 @@ class FileMemberActionResult(object):
     def result(self):
         self._result_value = None
         self._result_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(FileMemberActionResult, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'FileMemberActionResult(member={!r}, result={!r})'.format(
@@ -3424,12 +3572,15 @@ class FileMemberRemoveActionResult(bb.Union):
             raise AttributeError("tag 'member_error' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(FileMemberRemoveActionResult, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'FileMemberRemoveActionResult(%r, %r)' % (self._tag, self._value)
 
 FileMemberRemoveActionResult_validator = bv.Union(FileMemberRemoveActionResult)
 
-class FilePermission(object):
+class FilePermission(bb.Struct):
     """
     Whether the user is allowed to take the sharing action on the file.
 
@@ -3540,6 +3691,9 @@ class FilePermission(object):
         self._reason_value = None
         self._reason_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(FilePermission, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'FilePermission(action={!r}, allow={!r}, reason={!r})'.format(
             self._action_value,
@@ -3575,6 +3729,8 @@ class FolderAction(bb.Union):
         from the folder.
     :ivar share_link: Use create_link instead.
     :ivar create_link: Create a shared link for folder.
+    :ivar set_access_inheritance: Set whether the folder inherits permissions
+        from its parent.
     """
 
     _catch_all = 'other'
@@ -3604,6 +3760,8 @@ class FolderAction(bb.Union):
     share_link = None
     # Attribute is overwritten below the class definition
     create_link = None
+    # Attribute is overwritten below the class definition
+    set_access_inheritance = None
     # Attribute is overwritten below the class definition
     other = None
 
@@ -3711,6 +3869,14 @@ class FolderAction(bb.Union):
         """
         return self._tag == 'create_link'
 
+    def is_set_access_inheritance(self):
+        """
+        Check if the union tag is ``set_access_inheritance``.
+
+        :rtype: bool
+        """
+        return self._tag == 'set_access_inheritance'
+
     def is_other(self):
         """
         Check if the union tag is ``other``.
@@ -3718,6 +3884,9 @@ class FolderAction(bb.Union):
         :rtype: bool
         """
         return self._tag == 'other'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(FolderAction, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'FolderAction(%r, %r)' % (self._tag, self._value)
@@ -3752,6 +3921,9 @@ class FolderLinkMetadata(SharedLinkMetadata):
                                                  team_member_info,
                                                  content_owner_team_info)
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(FolderLinkMetadata, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'FolderLinkMetadata(url={!r}, name={!r}, link_permissions={!r}, id={!r}, expires={!r}, path_lower={!r}, team_member_info={!r}, content_owner_team_info={!r})'.format(
             self._url_value,
@@ -3766,7 +3938,7 @@ class FolderLinkMetadata(SharedLinkMetadata):
 
 FolderLinkMetadata_validator = bv.Struct(FolderLinkMetadata)
 
-class FolderPermission(object):
+class FolderPermission(bb.Struct):
     """
     Whether the user is allowed to take the action on the shared folder.
 
@@ -3877,6 +4049,9 @@ class FolderPermission(object):
         self._reason_value = None
         self._reason_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(FolderPermission, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'FolderPermission(action={!r}, allow={!r}, reason={!r})'.format(
             self._action_value,
@@ -3886,7 +4061,7 @@ class FolderPermission(object):
 
 FolderPermission_validator = bv.Struct(FolderPermission)
 
-class FolderPolicy(object):
+class FolderPolicy(bb.Struct):
     """
     A set of policies governing membership and privileges for a shared folder.
 
@@ -4077,6 +4252,9 @@ class FolderPolicy(object):
         self._viewer_info_policy_value = None
         self._viewer_info_policy_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(FolderPolicy, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'FolderPolicy(acl_update_policy={!r}, shared_link_policy={!r}, member_policy={!r}, resolved_member_policy={!r}, viewer_info_policy={!r})'.format(
             self._acl_update_policy_value,
@@ -4088,7 +4266,7 @@ class FolderPolicy(object):
 
 FolderPolicy_validator = bv.Struct(FolderPolicy)
 
-class GetFileMetadataArg(object):
+class GetFileMetadataArg(bb.Struct):
     """
     Arguments of :meth:`dropbox.dropbox.Dropbox.sharing_get_file_metadata`.
 
@@ -4171,6 +4349,9 @@ class GetFileMetadataArg(object):
         self._actions_value = None
         self._actions_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GetFileMetadataArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GetFileMetadataArg(file={!r}, actions={!r})'.format(
             self._file_value,
@@ -4179,7 +4360,7 @@ class GetFileMetadataArg(object):
 
 GetFileMetadataArg_validator = bv.Struct(GetFileMetadataArg)
 
-class GetFileMetadataBatchArg(object):
+class GetFileMetadataBatchArg(bb.Struct):
     """
     Arguments of
     :meth:`dropbox.dropbox.Dropbox.sharing_get_file_metadata_batch`.
@@ -4263,6 +4444,9 @@ class GetFileMetadataBatchArg(object):
         self._actions_value = None
         self._actions_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GetFileMetadataBatchArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GetFileMetadataBatchArg(files={!r}, actions={!r})'.format(
             self._files_value,
@@ -4271,7 +4455,7 @@ class GetFileMetadataBatchArg(object):
 
 GetFileMetadataBatchArg_validator = bv.Struct(GetFileMetadataBatchArg)
 
-class GetFileMetadataBatchResult(object):
+class GetFileMetadataBatchResult(bb.Struct):
     """
     Per file results of
     :meth:`dropbox.dropbox.Dropbox.sharing_get_file_metadata_batch`.
@@ -4348,6 +4532,9 @@ class GetFileMetadataBatchResult(object):
     def result(self):
         self._result_value = None
         self._result_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GetFileMetadataBatchResult, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'GetFileMetadataBatchResult(file={!r}, result={!r})'.format(
@@ -4435,6 +4622,9 @@ class GetFileMetadataError(bb.Union):
         if not self.is_access_error():
             raise AttributeError("tag 'access_error' not set")
         return self._value
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GetFileMetadataError, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'GetFileMetadataError(%r, %r)' % (self._tag, self._value)
@@ -4527,12 +4717,15 @@ class GetFileMetadataIndividualResult(bb.Union):
             raise AttributeError("tag 'access_error' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GetFileMetadataIndividualResult, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GetFileMetadataIndividualResult(%r, %r)' % (self._tag, self._value)
 
 GetFileMetadataIndividualResult_validator = bv.Union(GetFileMetadataIndividualResult)
 
-class GetMetadataArgs(object):
+class GetMetadataArgs(bb.Struct):
     """
     :ivar shared_folder_id: The ID for the shared folder.
     :ivar actions: A list of `FolderAction`s corresponding to
@@ -4614,6 +4807,9 @@ class GetMetadataArgs(object):
         self._actions_value = None
         self._actions_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GetMetadataArgs, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GetMetadataArgs(shared_folder_id={!r}, actions={!r})'.format(
             self._shared_folder_id_value,
@@ -4676,6 +4872,9 @@ class SharedLinkError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(SharedLinkError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'SharedLinkError(%r, %r)' % (self._tag, self._value)
 
@@ -4702,12 +4901,15 @@ class GetSharedLinkFileError(SharedLinkError):
         """
         return self._tag == 'shared_link_is_directory'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GetSharedLinkFileError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GetSharedLinkFileError(%r, %r)' % (self._tag, self._value)
 
 GetSharedLinkFileError_validator = bv.Union(GetSharedLinkFileError)
 
-class GetSharedLinkMetadataArg(object):
+class GetSharedLinkMetadataArg(bb.Struct):
     """
     :ivar url: URL of the shared link.
     :ivar path: If the shared link is to a folder, this parameter can be used to
@@ -4822,6 +5024,9 @@ class GetSharedLinkMetadataArg(object):
         self._link_password_value = None
         self._link_password_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GetSharedLinkMetadataArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GetSharedLinkMetadataArg(url={!r}, path={!r}, link_password={!r})'.format(
             self._url_value,
@@ -4831,7 +5036,7 @@ class GetSharedLinkMetadataArg(object):
 
 GetSharedLinkMetadataArg_validator = bv.Struct(GetSharedLinkMetadataArg)
 
-class GetSharedLinksArg(object):
+class GetSharedLinksArg(bb.Struct):
     """
     :ivar path: See :meth:`dropbox.dropbox.Dropbox.sharing_get_shared_links`
         description.
@@ -4877,6 +5082,9 @@ class GetSharedLinksArg(object):
     def path(self):
         self._path_value = None
         self._path_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GetSharedLinksArg, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'GetSharedLinksArg(path={!r})'.format(
@@ -4933,12 +5141,15 @@ class GetSharedLinksError(bb.Union):
             raise AttributeError("tag 'path' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GetSharedLinksError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GetSharedLinksError(%r, %r)' % (self._tag, self._value)
 
 GetSharedLinksError_validator = bv.Union(GetSharedLinksError)
 
-class GetSharedLinksResult(object):
+class GetSharedLinksResult(bb.Struct):
     """
     :ivar links: Shared links applicable to the path argument.
     """
@@ -4979,6 +5190,9 @@ class GetSharedLinksResult(object):
     def links(self):
         self._links_value = None
         self._links_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GetSharedLinksResult, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'GetSharedLinksResult(links={!r})'.format(
@@ -5048,7 +5262,7 @@ class GroupInfo(team_common.GroupSummary):
         """
         The type of group.
 
-        :rtype: team_common.GroupType_validator
+        :rtype: team_common.GroupType
         """
         if self._group_type_present:
             return self._group_type_value
@@ -5135,6 +5349,9 @@ class GroupInfo(team_common.GroupSummary):
         self._same_team_value = None
         self._same_team_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupInfo, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GroupInfo(group_name={!r}, group_id={!r}, group_management_type={!r}, group_type={!r}, is_member={!r}, is_owner={!r}, same_team={!r}, group_external_id={!r}, member_count={!r})'.format(
             self._group_name_value,
@@ -5150,14 +5367,16 @@ class GroupInfo(team_common.GroupSummary):
 
 GroupInfo_validator = bv.Struct(GroupInfo)
 
-class MembershipInfo(object):
+class MembershipInfo(bb.Struct):
     """
     The information about a member of the shared content.
 
-    :ivar access_type: The access type for this member.
+    :ivar access_type: The access type for this member. It contains inherited
+        access type from parent folder, and acquired access type from this
+        folder.
     :ivar permissions: The permissions that requesting user has on this member.
         The set of permissions corresponds to the MemberActions in the request.
-    :ivar initials: Suggested name initials for a member.
+    :ivar initials: Never set.
     :ivar is_inherited: True if the member has access from a parent folder.
     """
 
@@ -5199,7 +5418,8 @@ class MembershipInfo(object):
     @property
     def access_type(self):
         """
-        The access type for this member.
+        The access type for this member. It contains inherited access type from
+        parent folder, and acquired access type from this folder.
 
         :rtype: AccessLevel
         """
@@ -5249,7 +5469,7 @@ class MembershipInfo(object):
     @property
     def initials(self):
         """
-        Suggested name initials for a member.
+        Never set.
 
         :rtype: str
         """
@@ -5294,6 +5514,9 @@ class MembershipInfo(object):
     def is_inherited(self):
         self._is_inherited_value = None
         self._is_inherited_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MembershipInfo, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'MembershipInfo(access_type={!r}, permissions={!r}, initials={!r}, is_inherited={!r})'.format(
@@ -5357,6 +5580,9 @@ class GroupMembershipInfo(MembershipInfo):
         self._group_value = None
         self._group_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupMembershipInfo, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GroupMembershipInfo(access_type={!r}, group={!r}, permissions={!r}, initials={!r}, is_inherited={!r})'.format(
             self._access_type_value,
@@ -5368,7 +5594,7 @@ class GroupMembershipInfo(MembershipInfo):
 
 GroupMembershipInfo_validator = bv.Struct(GroupMembershipInfo)
 
-class InsufficientPlan(object):
+class InsufficientPlan(bb.Struct):
     """
     :ivar message: A message to tell the user to upgrade in order to support
         expected action.
@@ -5450,6 +5676,9 @@ class InsufficientPlan(object):
         self._upsell_url_value = None
         self._upsell_url_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(InsufficientPlan, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'InsufficientPlan(message={!r}, upsell_url={!r})'.format(
             self._message_value,
@@ -5458,7 +5687,7 @@ class InsufficientPlan(object):
 
 InsufficientPlan_validator = bv.Struct(InsufficientPlan)
 
-class InsufficientQuotaAmounts(object):
+class InsufficientQuotaAmounts(bb.Struct):
     """
     :ivar space_needed: The amount of space needed to add the item (the size of
         the item).
@@ -5500,7 +5729,7 @@ class InsufficientQuotaAmounts(object):
         """
         The amount of space needed to add the item (the size of the item).
 
-        :rtype: long
+        :rtype: int
         """
         if self._space_needed_present:
             return self._space_needed_value
@@ -5523,7 +5752,7 @@ class InsufficientQuotaAmounts(object):
         """
         The amount of extra space needed to add the item.
 
-        :rtype: long
+        :rtype: int
         """
         if self._space_shortage_present:
             return self._space_shortage_value
@@ -5546,7 +5775,7 @@ class InsufficientQuotaAmounts(object):
         """
         The amount of space left in the user's Dropbox, less than space_needed.
 
-        :rtype: long
+        :rtype: int
         """
         if self._space_left_present:
             return self._space_left_value
@@ -5563,6 +5792,9 @@ class InsufficientQuotaAmounts(object):
     def space_left(self):
         self._space_left_value = None
         self._space_left_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(InsufficientQuotaAmounts, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'InsufficientQuotaAmounts(space_needed={!r}, space_shortage={!r}, space_left={!r})'.format(
@@ -5626,6 +5858,9 @@ class InviteeInfo(bb.Union):
         if not self.is_email():
             raise AttributeError("tag 'email' not set")
         return self._value
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(InviteeInfo, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'InviteeInfo(%r, %r)' % (self._tag, self._value)
@@ -5717,6 +5952,9 @@ class InviteeMembershipInfo(MembershipInfo):
     def user(self):
         self._user_value = None
         self._user_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(InviteeMembershipInfo, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'InviteeMembershipInfo(access_type={!r}, invitee={!r}, permissions={!r}, initials={!r}, is_inherited={!r}, user={!r})'.format(
@@ -5861,12 +6099,15 @@ class JobError(bb.Union):
             raise AttributeError("tag 'relinquish_folder_membership_error' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(JobError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'JobError(%r, %r)' % (self._tag, self._value)
 
 JobError_validator = bv.Union(JobError)
 
-class JobStatus(async.PollResultBase):
+class JobStatus(async_.PollResultBase):
     """
     This class acts as a tagged union. Only one of the ``is_*`` methods will
     return true. To get the associated value of a tag (if one exists), use the
@@ -5917,6 +6158,9 @@ class JobStatus(async.PollResultBase):
         if not self.is_failed():
             raise AttributeError("tag 'failed' not set")
         return self._value
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(JobStatus, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'JobStatus(%r, %r)' % (self._tag, self._value)
@@ -6011,6 +6255,9 @@ class LinkAction(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(LinkAction, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'LinkAction(%r, %r)' % (self._tag, self._value)
 
@@ -6024,6 +6271,10 @@ class LinkAudience(bb.Union):
 
     :ivar public: Link is accessible by anyone.
     :ivar team: Link is accessible only by team members.
+    :ivar no_one: The link can be used by no one. The link merely points the
+        user to the content, and does not grant additional rights to the user.
+        Members of the content who use this link can only access the content
+        with their pre-existing access rights.
     :ivar members: Link is accessible only by members of the content.
     """
 
@@ -6032,6 +6283,8 @@ class LinkAudience(bb.Union):
     public = None
     # Attribute is overwritten below the class definition
     team = None
+    # Attribute is overwritten below the class definition
+    no_one = None
     # Attribute is overwritten below the class definition
     members = None
     # Attribute is overwritten below the class definition
@@ -6053,6 +6306,14 @@ class LinkAudience(bb.Union):
         """
         return self._tag == 'team'
 
+    def is_no_one(self):
+        """
+        Check if the union tag is ``no_one``.
+
+        :rtype: bool
+        """
+        return self._tag == 'no_one'
+
     def is_members(self):
         """
         Check if the union tag is ``members``.
@@ -6068,6 +6329,9 @@ class LinkAudience(bb.Union):
         :rtype: bool
         """
         return self._tag == 'other'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(LinkAudience, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'LinkAudience(%r, %r)' % (self._tag, self._value)
@@ -6138,6 +6402,9 @@ class LinkExpiry(bb.Union):
             raise AttributeError("tag 'set_expiry' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(LinkExpiry, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'LinkExpiry(%r, %r)' % (self._tag, self._value)
 
@@ -6206,12 +6473,15 @@ class LinkPassword(bb.Union):
             raise AttributeError("tag 'set_password' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(LinkPassword, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'LinkPassword(%r, %r)' % (self._tag, self._value)
 
 LinkPassword_validator = bv.Union(LinkPassword)
 
-class LinkPermission(object):
+class LinkPermission(bb.Struct):
     """
     Permissions for actions that can be performed on a link.
     """
@@ -6310,6 +6580,9 @@ class LinkPermission(object):
         self._reason_value = None
         self._reason_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(LinkPermission, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'LinkPermission(action={!r}, allow={!r}, reason={!r})'.format(
             self._action_value,
@@ -6319,7 +6592,7 @@ class LinkPermission(object):
 
 LinkPermission_validator = bv.Struct(LinkPermission)
 
-class LinkPermissions(object):
+class LinkPermissions(bb.Struct):
     """
     :ivar resolved_visibility: The current visibility of the link after
         considering the shared links policies of the the team (in case the
@@ -6481,6 +6754,9 @@ class LinkPermissions(object):
         self._revoke_failure_reason_value = None
         self._revoke_failure_reason_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(LinkPermissions, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'LinkPermissions(can_revoke={!r}, resolved_visibility={!r}, requested_visibility={!r}, revoke_failure_reason={!r})'.format(
             self._can_revoke_value,
@@ -6491,7 +6767,7 @@ class LinkPermissions(object):
 
 LinkPermissions_validator = bv.Struct(LinkPermissions)
 
-class LinkSettings(object):
+class LinkSettings(bb.Struct):
     """
     Settings that apply to a link.
 
@@ -6642,6 +6918,9 @@ class LinkSettings(object):
         self._password_value = None
         self._password_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(LinkSettings, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'LinkSettings(access_level={!r}, audience={!r}, expiry={!r}, password={!r})'.format(
             self._access_level_value,
@@ -6652,7 +6931,7 @@ class LinkSettings(object):
 
 LinkSettings_validator = bv.Struct(LinkSettings)
 
-class ListFileMembersArg(object):
+class ListFileMembersArg(bb.Struct):
     """
     Arguments for :meth:`dropbox.dropbox.Dropbox.sharing_list_file_members`.
 
@@ -6778,7 +7057,7 @@ class ListFileMembersArg(object):
         Number of members to return max per query. Defaults to 100 if no limit
         is specified.
 
-        :rtype: long
+        :rtype: int
         """
         if self._limit_present:
             return self._limit_value
@@ -6796,6 +7075,9 @@ class ListFileMembersArg(object):
         self._limit_value = None
         self._limit_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListFileMembersArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListFileMembersArg(file={!r}, actions={!r}, include_inherited={!r}, limit={!r})'.format(
             self._file_value,
@@ -6806,7 +7088,7 @@ class ListFileMembersArg(object):
 
 ListFileMembersArg_validator = bv.Struct(ListFileMembersArg)
 
-class ListFileMembersBatchArg(object):
+class ListFileMembersBatchArg(bb.Struct):
     """
     Arguments for
     :meth:`dropbox.dropbox.Dropbox.sharing_list_file_members_batch`.
@@ -6866,7 +7148,7 @@ class ListFileMembersBatchArg(object):
         Number of members to return max per query. Defaults to 10 if no limit is
         specified.
 
-        :rtype: long
+        :rtype: int
         """
         if self._limit_present:
             return self._limit_value
@@ -6884,6 +7166,9 @@ class ListFileMembersBatchArg(object):
         self._limit_value = None
         self._limit_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListFileMembersBatchArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListFileMembersBatchArg(files={!r}, limit={!r})'.format(
             self._files_value,
@@ -6892,7 +7177,7 @@ class ListFileMembersBatchArg(object):
 
 ListFileMembersBatchArg_validator = bv.Struct(ListFileMembersBatchArg)
 
-class ListFileMembersBatchResult(object):
+class ListFileMembersBatchResult(bb.Struct):
     """
     Per-file result for
     :meth:`dropbox.dropbox.Dropbox.sharing_list_file_members_batch`.
@@ -6968,6 +7253,9 @@ class ListFileMembersBatchResult(object):
         self._result_value = None
         self._result_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListFileMembersBatchResult, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListFileMembersBatchResult(file={!r}, result={!r})'.format(
             self._file_value,
@@ -6976,7 +7264,7 @@ class ListFileMembersBatchResult(object):
 
 ListFileMembersBatchResult_validator = bv.Struct(ListFileMembersBatchResult)
 
-class ListFileMembersContinueArg(object):
+class ListFileMembersContinueArg(bb.Struct):
     """
     Arguments for
     :meth:`dropbox.dropbox.Dropbox.sharing_list_file_members_continue`.
@@ -7026,6 +7314,9 @@ class ListFileMembersContinueArg(object):
     def cursor(self):
         self._cursor_value = None
         self._cursor_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListFileMembersContinueArg, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'ListFileMembersContinueArg(cursor={!r})'.format(
@@ -7126,12 +7417,15 @@ class ListFileMembersContinueError(bb.Union):
             raise AttributeError("tag 'access_error' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListFileMembersContinueError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListFileMembersContinueError(%r, %r)' % (self._tag, self._value)
 
 ListFileMembersContinueError_validator = bv.Union(ListFileMembersContinueError)
 
-class ListFileMembersCountResult(object):
+class ListFileMembersCountResult(bb.Struct):
     """
     :ivar members: A list of members on this file.
     :ivar member_count: The number of members on this file. This does not
@@ -7188,7 +7482,7 @@ class ListFileMembersCountResult(object):
         The number of members on this file. This does not include inherited
         members.
 
-        :rtype: long
+        :rtype: int
         """
         if self._member_count_present:
             return self._member_count_value
@@ -7205,6 +7499,9 @@ class ListFileMembersCountResult(object):
     def member_count(self):
         self._member_count_value = None
         self._member_count_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListFileMembersCountResult, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'ListFileMembersCountResult(members={!r}, member_count={!r})'.format(
@@ -7292,6 +7589,9 @@ class ListFileMembersError(bb.Union):
         if not self.is_access_error():
             raise AttributeError("tag 'access_error' not set")
         return self._value
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListFileMembersError, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'ListFileMembersError(%r, %r)' % (self._tag, self._value)
@@ -7384,12 +7684,15 @@ class ListFileMembersIndividualResult(bb.Union):
             raise AttributeError("tag 'access_error' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListFileMembersIndividualResult, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListFileMembersIndividualResult(%r, %r)' % (self._tag, self._value)
 
 ListFileMembersIndividualResult_validator = bv.Union(ListFileMembersIndividualResult)
 
-class ListFilesArg(object):
+class ListFilesArg(bb.Struct):
     """
     Arguments for :meth:`dropbox.dropbox.Dropbox.sharing_list_received_files`.
 
@@ -7428,7 +7731,7 @@ class ListFilesArg(object):
         Number of files to return max per query. Defaults to 100 if no limit is
         specified.
 
-        :rtype: long
+        :rtype: int
         """
         if self._limit_present:
             return self._limit_value
@@ -7474,6 +7777,9 @@ class ListFilesArg(object):
         self._actions_value = None
         self._actions_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListFilesArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListFilesArg(limit={!r}, actions={!r})'.format(
             self._limit_value,
@@ -7482,7 +7788,7 @@ class ListFilesArg(object):
 
 ListFilesArg_validator = bv.Struct(ListFilesArg)
 
-class ListFilesContinueArg(object):
+class ListFilesContinueArg(bb.Struct):
     """
     Arguments for
     :meth:`dropbox.dropbox.Dropbox.sharing_list_received_files_continue`.
@@ -7526,6 +7832,9 @@ class ListFilesContinueArg(object):
     def cursor(self):
         self._cursor_value = None
         self._cursor_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListFilesContinueArg, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'ListFilesContinueArg(cursor={!r})'.format(
@@ -7600,12 +7909,15 @@ class ListFilesContinueError(bb.Union):
             raise AttributeError("tag 'user_error' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListFilesContinueError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListFilesContinueError(%r, %r)' % (self._tag, self._value)
 
 ListFilesContinueError_validator = bv.Union(ListFilesContinueError)
 
-class ListFilesResult(object):
+class ListFilesResult(bb.Struct):
     """
     Success results for
     :meth:`dropbox.dropbox.Dropbox.sharing_list_received_files`.
@@ -7684,6 +7996,9 @@ class ListFilesResult(object):
         self._cursor_value = None
         self._cursor_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListFilesResult, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListFilesResult(entries={!r}, cursor={!r})'.format(
             self._entries_value,
@@ -7692,7 +8007,7 @@ class ListFilesResult(object):
 
 ListFilesResult_validator = bv.Struct(ListFilesResult)
 
-class ListFolderMembersCursorArg(object):
+class ListFolderMembersCursorArg(bb.Struct):
     """
     :ivar actions: This is a list indicating whether each returned member will
         include a boolean value ``MemberPermission.allow`` that describes
@@ -7756,7 +8071,7 @@ class ListFolderMembersCursorArg(object):
         The maximum number of results that include members, groups and invitees
         to return per request.
 
-        :rtype: long
+        :rtype: int
         """
         if self._limit_present:
             return self._limit_value
@@ -7773,6 +8088,9 @@ class ListFolderMembersCursorArg(object):
     def limit(self):
         self._limit_value = None
         self._limit_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListFolderMembersCursorArg, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'ListFolderMembersCursorArg(actions={!r}, limit={!r})'.format(
@@ -7828,6 +8146,9 @@ class ListFolderMembersArgs(ListFolderMembersCursorArg):
         self._shared_folder_id_value = None
         self._shared_folder_id_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListFolderMembersArgs, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListFolderMembersArgs(shared_folder_id={!r}, actions={!r}, limit={!r})'.format(
             self._shared_folder_id_value,
@@ -7837,7 +8158,7 @@ class ListFolderMembersArgs(ListFolderMembersCursorArg):
 
 ListFolderMembersArgs_validator = bv.Struct(ListFolderMembersArgs)
 
-class ListFolderMembersContinueArg(object):
+class ListFolderMembersContinueArg(bb.Struct):
     """
     :ivar cursor: The cursor returned by your last call to
         :meth:`dropbox.dropbox.Dropbox.sharing_list_folder_members` or
@@ -7882,6 +8203,9 @@ class ListFolderMembersContinueArg(object):
     def cursor(self):
         self._cursor_value = None
         self._cursor_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListFolderMembersContinueArg, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'ListFolderMembersContinueArg(cursor={!r})'.format(
@@ -7950,12 +8274,15 @@ class ListFolderMembersContinueError(bb.Union):
             raise AttributeError("tag 'access_error' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListFolderMembersContinueError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListFolderMembersContinueError(%r, %r)' % (self._tag, self._value)
 
 ListFolderMembersContinueError_validator = bv.Union(ListFolderMembersContinueError)
 
-class ListFoldersArgs(object):
+class ListFoldersArgs(bb.Struct):
     """
     :ivar limit: The maximum number of results to return per request.
     :ivar actions: A list of `FolderAction`s corresponding to
@@ -7990,7 +8317,7 @@ class ListFoldersArgs(object):
         """
         The maximum number of results to return per request.
 
-        :rtype: long
+        :rtype: int
         """
         if self._limit_present:
             return self._limit_value
@@ -8037,6 +8364,9 @@ class ListFoldersArgs(object):
         self._actions_value = None
         self._actions_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListFoldersArgs, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListFoldersArgs(limit={!r}, actions={!r})'.format(
             self._limit_value,
@@ -8045,7 +8375,7 @@ class ListFoldersArgs(object):
 
 ListFoldersArgs_validator = bv.Struct(ListFoldersArgs)
 
-class ListFoldersContinueArg(object):
+class ListFoldersContinueArg(bb.Struct):
     """
     :ivar cursor: The cursor returned by the previous API call specified in the
         endpoint description.
@@ -8089,6 +8419,9 @@ class ListFoldersContinueArg(object):
         self._cursor_value = None
         self._cursor_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListFoldersContinueArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListFoldersContinueArg(cursor={!r})'.format(
             self._cursor_value,
@@ -8127,12 +8460,15 @@ class ListFoldersContinueError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListFoldersContinueError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListFoldersContinueError(%r, %r)' % (self._tag, self._value)
 
 ListFoldersContinueError_validator = bv.Union(ListFoldersContinueError)
 
-class ListFoldersResult(object):
+class ListFoldersResult(bb.Struct):
     """
     Result for :meth:`dropbox.dropbox.Dropbox.sharing_list_folders` or
     :meth:`dropbox.dropbox.Dropbox.sharing_list_mountable_folders`, depending on
@@ -8223,6 +8559,9 @@ class ListFoldersResult(object):
         self._cursor_value = None
         self._cursor_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListFoldersResult, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListFoldersResult(entries={!r}, cursor={!r})'.format(
             self._entries_value,
@@ -8231,7 +8570,7 @@ class ListFoldersResult(object):
 
 ListFoldersResult_validator = bv.Struct(ListFoldersResult)
 
-class ListSharedLinksArg(object):
+class ListSharedLinksArg(bb.Struct):
     """
     :ivar path: See :meth:`dropbox.dropbox.Dropbox.sharing_list_shared_links`
         description.
@@ -8350,6 +8689,9 @@ class ListSharedLinksArg(object):
         self._direct_only_value = None
         self._direct_only_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListSharedLinksArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListSharedLinksArg(path={!r}, cursor={!r}, direct_only={!r})'.format(
             self._path_value,
@@ -8382,7 +8724,7 @@ class ListSharedLinksError(bb.Union):
         Create an instance of this class set to the ``path`` tag with value
         ``val``.
 
-        :param files.LookupError_validator val:
+        :param files.LookupError val:
         :rtype: ListSharedLinksError
         """
         return cls('path', val)
@@ -8415,18 +8757,21 @@ class ListSharedLinksError(bb.Union):
         """
         Only call this if :meth:`is_path` is true.
 
-        :rtype: files.LookupError_validator
+        :rtype: files.LookupError
         """
         if not self.is_path():
             raise AttributeError("tag 'path' not set")
         return self._value
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListSharedLinksError, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'ListSharedLinksError(%r, %r)' % (self._tag, self._value)
 
 ListSharedLinksError_validator = bv.Union(ListSharedLinksError)
 
-class ListSharedLinksResult(object):
+class ListSharedLinksResult(bb.Struct):
     """
     :ivar links: Shared links applicable to the path argument.
     :ivar has_more: Is true if there are additional shared links that have not
@@ -8543,6 +8888,9 @@ class ListSharedLinksResult(object):
         self._cursor_value = None
         self._cursor_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ListSharedLinksResult, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ListSharedLinksResult(links={!r}, has_more={!r}, cursor={!r})'.format(
             self._links_value,
@@ -8552,7 +8900,7 @@ class ListSharedLinksResult(object):
 
 ListSharedLinksResult_validator = bv.Struct(ListSharedLinksResult)
 
-class MemberAccessLevelResult(object):
+class MemberAccessLevelResult(bb.Struct):
     """
     Contains information about a member's access level to content after an
     operation.
@@ -8676,6 +9024,9 @@ class MemberAccessLevelResult(object):
         self._access_details_value = None
         self._access_details_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MemberAccessLevelResult, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'MemberAccessLevelResult(access_level={!r}, warning={!r}, access_details={!r})'.format(
             self._access_level_value,
@@ -8775,12 +9126,15 @@ class MemberAction(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MemberAction, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'MemberAction(%r, %r)' % (self._tag, self._value)
 
 MemberAction_validator = bv.Union(MemberAction)
 
-class MemberPermission(object):
+class MemberPermission(bb.Struct):
     """
     Whether the user is allowed to take the action on the associated member.
 
@@ -8891,6 +9245,9 @@ class MemberPermission(object):
         self._reason_value = None
         self._reason_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MemberPermission, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'MemberPermission(action={!r}, allow={!r}, reason={!r})'.format(
             self._action_value,
@@ -8944,6 +9301,9 @@ class MemberPolicy(bb.Union):
         :rtype: bool
         """
         return self._tag == 'other'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MemberPolicy, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'MemberPolicy(%r, %r)' % (self._tag, self._value)
@@ -9036,12 +9396,15 @@ class MemberSelector(bb.Union):
             raise AttributeError("tag 'email' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MemberSelector, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'MemberSelector(%r, %r)' % (self._tag, self._value)
 
 MemberSelector_validator = bv.Union(MemberSelector)
 
-class ModifySharedLinkSettingsArgs(object):
+class ModifySharedLinkSettingsArgs(bb.Struct):
     """
     :ivar url: URL of the shared link to change its settings.
     :ivar settings: Set of settings for the shared link.
@@ -9146,6 +9509,9 @@ class ModifySharedLinkSettingsArgs(object):
         self._remove_expiration_value = None
         self._remove_expiration_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ModifySharedLinkSettingsArgs, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ModifySharedLinkSettingsArgs(url={!r}, settings={!r}, remove_expiration={!r})'.format(
             self._url_value,
@@ -9208,12 +9574,15 @@ class ModifySharedLinkSettingsError(SharedLinkError):
             raise AttributeError("tag 'settings_error' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ModifySharedLinkSettingsError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ModifySharedLinkSettingsError(%r, %r)' % (self._tag, self._value)
 
 ModifySharedLinkSettingsError_validator = bv.Union(ModifySharedLinkSettingsError)
 
-class MountFolderArg(object):
+class MountFolderArg(bb.Struct):
     """
     :ivar shared_folder_id: The ID of the shared folder to mount.
     """
@@ -9254,6 +9623,9 @@ class MountFolderArg(object):
     def shared_folder_id(self):
         self._shared_folder_id_value = None
         self._shared_folder_id_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MountFolderArg, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'MountFolderArg(shared_folder_id={!r})'.format(
@@ -9392,12 +9764,15 @@ class MountFolderError(bb.Union):
             raise AttributeError("tag 'insufficient_quota' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MountFolderError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'MountFolderError(%r, %r)' % (self._tag, self._value)
 
 MountFolderError_validator = bv.Union(MountFolderError)
 
-class ParentFolderAccessInfo(object):
+class ParentFolderAccessInfo(bb.Struct):
     """
     Contains information about a parent folder that a member has access to.
 
@@ -9536,6 +9911,9 @@ class ParentFolderAccessInfo(object):
         self._path_value = None
         self._path_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ParentFolderAccessInfo, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ParentFolderAccessInfo(folder_name={!r}, shared_folder_id={!r}, permissions={!r}, path={!r})'.format(
             self._folder_name_value,
@@ -9596,6 +9974,9 @@ class PathLinkMetadata(LinkMetadata):
         self._path_value = None
         self._path_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(PathLinkMetadata, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'PathLinkMetadata(url={!r}, visibility={!r}, path={!r}, expires={!r})'.format(
             self._url_value,
@@ -9640,6 +10021,9 @@ class PendingUploadMode(bb.Union):
         :rtype: bool
         """
         return self._tag == 'folder'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(PendingUploadMode, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'PendingUploadMode(%r, %r)' % (self._tag, self._value)
@@ -9862,12 +10246,15 @@ class PermissionDeniedReason(bb.Union):
             raise AttributeError("tag 'insufficient_plan' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(PermissionDeniedReason, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'PermissionDeniedReason(%r, %r)' % (self._tag, self._value)
 
 PermissionDeniedReason_validator = bv.Union(PermissionDeniedReason)
 
-class RelinquishFileMembershipArg(object):
+class RelinquishFileMembershipArg(bb.Struct):
     """
     :ivar file: The path or id for the file.
     """
@@ -9908,6 +10295,9 @@ class RelinquishFileMembershipArg(object):
     def file(self):
         self._file_value = None
         self._file_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(RelinquishFileMembershipArg, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'RelinquishFileMembershipArg(file={!r})'.format(
@@ -9989,12 +10379,15 @@ class RelinquishFileMembershipError(bb.Union):
             raise AttributeError("tag 'access_error' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(RelinquishFileMembershipError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'RelinquishFileMembershipError(%r, %r)' % (self._tag, self._value)
 
 RelinquishFileMembershipError_validator = bv.Union(RelinquishFileMembershipError)
 
-class RelinquishFolderMembershipArg(object):
+class RelinquishFolderMembershipArg(bb.Struct):
     """
     :ivar shared_folder_id: The ID for the shared folder.
     :ivar leave_a_copy: Keep a copy of the folder's contents upon relinquishing
@@ -10067,6 +10460,9 @@ class RelinquishFolderMembershipArg(object):
     def leave_a_copy(self):
         self._leave_a_copy_value = None
         self._leave_a_copy_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(RelinquishFolderMembershipArg, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'RelinquishFolderMembershipArg(shared_folder_id={!r}, leave_a_copy={!r})'.format(
@@ -10197,12 +10593,15 @@ class RelinquishFolderMembershipError(bb.Union):
             raise AttributeError("tag 'access_error' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(RelinquishFolderMembershipError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'RelinquishFolderMembershipError(%r, %r)' % (self._tag, self._value)
 
 RelinquishFolderMembershipError_validator = bv.Union(RelinquishFolderMembershipError)
 
-class RemoveFileMemberArg(object):
+class RemoveFileMemberArg(bb.Struct):
     """
     Arguments for :meth:`dropbox.dropbox.Dropbox.sharing_remove_file_member_2`.
 
@@ -10280,6 +10679,9 @@ class RemoveFileMemberArg(object):
     def member(self):
         self._member_value = None
         self._member_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(RemoveFileMemberArg, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'RemoveFileMemberArg(file={!r}, member={!r})'.format(
@@ -10406,12 +10808,15 @@ class RemoveFileMemberError(bb.Union):
             raise AttributeError("tag 'no_explicit_access' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(RemoveFileMemberError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'RemoveFileMemberError(%r, %r)' % (self._tag, self._value)
 
 RemoveFileMemberError_validator = bv.Union(RemoveFileMemberError)
 
-class RemoveFolderMemberArg(object):
+class RemoveFolderMemberArg(bb.Struct):
     """
     :ivar shared_folder_id: The ID for the shared folder.
     :ivar member: The member to remove from the folder.
@@ -10519,6 +10924,9 @@ class RemoveFolderMemberArg(object):
     def leave_a_copy(self):
         self._leave_a_copy_value = None
         self._leave_a_copy_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(RemoveFolderMemberArg, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'RemoveFolderMemberArg(shared_folder_id={!r}, member={!r}, leave_a_copy={!r})'.format(
@@ -10667,12 +11075,15 @@ class RemoveFolderMemberError(bb.Union):
             raise AttributeError("tag 'member_error' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(RemoveFolderMemberError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'RemoveFolderMemberError(%r, %r)' % (self._tag, self._value)
 
 RemoveFolderMemberError_validator = bv.Union(RemoveFolderMemberError)
 
-class RemoveMemberJobStatus(async.PollResultBase):
+class RemoveMemberJobStatus(async_.PollResultBase):
     """
     This class acts as a tagged union. Only one of the ``is_*`` methods will
     return true. To get the associated value of a tag (if one exists), use the
@@ -10744,6 +11155,9 @@ class RemoveMemberJobStatus(async.PollResultBase):
             raise AttributeError("tag 'failed' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(RemoveMemberJobStatus, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'RemoveMemberJobStatus(%r, %r)' % (self._tag, self._value)
 
@@ -10801,6 +11215,9 @@ class RequestedVisibility(bb.Union):
         """
         return self._tag == 'password'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(RequestedVisibility, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'RequestedVisibility(%r, %r)' % (self._tag, self._value)
 
@@ -10855,12 +11272,15 @@ class ResolvedVisibility(RequestedVisibility):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ResolvedVisibility, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ResolvedVisibility(%r, %r)' % (self._tag, self._value)
 
 ResolvedVisibility_validator = bv.Union(ResolvedVisibility)
 
-class RevokeSharedLinkArg(object):
+class RevokeSharedLinkArg(bb.Struct):
     """
     :ivar url: URL of the shared link.
     """
@@ -10902,6 +11322,9 @@ class RevokeSharedLinkArg(object):
         self._url_value = None
         self._url_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(RevokeSharedLinkArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'RevokeSharedLinkArg(url={!r})'.format(
             self._url_value,
@@ -10929,12 +11352,171 @@ class RevokeSharedLinkError(SharedLinkError):
         """
         return self._tag == 'shared_link_malformed'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(RevokeSharedLinkError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'RevokeSharedLinkError(%r, %r)' % (self._tag, self._value)
 
 RevokeSharedLinkError_validator = bv.Union(RevokeSharedLinkError)
 
-class ShareFolderArgBase(object):
+class SetAccessInheritanceArg(bb.Struct):
+    """
+    :ivar access_inheritance: The access inheritance settings for the folder.
+    :ivar shared_folder_id: The ID for the shared folder.
+    """
+
+    __slots__ = [
+        '_access_inheritance_value',
+        '_access_inheritance_present',
+        '_shared_folder_id_value',
+        '_shared_folder_id_present',
+    ]
+
+    _has_required_fields = True
+
+    def __init__(self,
+                 shared_folder_id=None,
+                 access_inheritance=None):
+        self._access_inheritance_value = None
+        self._access_inheritance_present = False
+        self._shared_folder_id_value = None
+        self._shared_folder_id_present = False
+        if access_inheritance is not None:
+            self.access_inheritance = access_inheritance
+        if shared_folder_id is not None:
+            self.shared_folder_id = shared_folder_id
+
+    @property
+    def access_inheritance(self):
+        """
+        The access inheritance settings for the folder.
+
+        :rtype: AccessInheritance
+        """
+        if self._access_inheritance_present:
+            return self._access_inheritance_value
+        else:
+            return AccessInheritance.inherit
+
+    @access_inheritance.setter
+    def access_inheritance(self, val):
+        self._access_inheritance_validator.validate_type_only(val)
+        self._access_inheritance_value = val
+        self._access_inheritance_present = True
+
+    @access_inheritance.deleter
+    def access_inheritance(self):
+        self._access_inheritance_value = None
+        self._access_inheritance_present = False
+
+    @property
+    def shared_folder_id(self):
+        """
+        The ID for the shared folder.
+
+        :rtype: str
+        """
+        if self._shared_folder_id_present:
+            return self._shared_folder_id_value
+        else:
+            raise AttributeError("missing required field 'shared_folder_id'")
+
+    @shared_folder_id.setter
+    def shared_folder_id(self, val):
+        val = self._shared_folder_id_validator.validate(val)
+        self._shared_folder_id_value = val
+        self._shared_folder_id_present = True
+
+    @shared_folder_id.deleter
+    def shared_folder_id(self):
+        self._shared_folder_id_value = None
+        self._shared_folder_id_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(SetAccessInheritanceArg, self)._process_custom_annotations(annotation_type, processor)
+
+    def __repr__(self):
+        return 'SetAccessInheritanceArg(shared_folder_id={!r}, access_inheritance={!r})'.format(
+            self._shared_folder_id_value,
+            self._access_inheritance_value,
+        )
+
+SetAccessInheritanceArg_validator = bv.Struct(SetAccessInheritanceArg)
+
+class SetAccessInheritanceError(bb.Union):
+    """
+    This class acts as a tagged union. Only one of the ``is_*`` methods will
+    return true. To get the associated value of a tag (if one exists), use the
+    corresponding ``get_*`` method.
+
+    :ivar SharedFolderAccessError access_error: Unable to access shared folder.
+    :ivar no_permission: The current user does not have permission to perform
+        this action.
+    """
+
+    _catch_all = 'other'
+    # Attribute is overwritten below the class definition
+    no_permission = None
+    # Attribute is overwritten below the class definition
+    other = None
+
+    @classmethod
+    def access_error(cls, val):
+        """
+        Create an instance of this class set to the ``access_error`` tag with
+        value ``val``.
+
+        :param SharedFolderAccessError val:
+        :rtype: SetAccessInheritanceError
+        """
+        return cls('access_error', val)
+
+    def is_access_error(self):
+        """
+        Check if the union tag is ``access_error``.
+
+        :rtype: bool
+        """
+        return self._tag == 'access_error'
+
+    def is_no_permission(self):
+        """
+        Check if the union tag is ``no_permission``.
+
+        :rtype: bool
+        """
+        return self._tag == 'no_permission'
+
+    def is_other(self):
+        """
+        Check if the union tag is ``other``.
+
+        :rtype: bool
+        """
+        return self._tag == 'other'
+
+    def get_access_error(self):
+        """
+        Unable to access shared folder.
+
+        Only call this if :meth:`is_access_error` is true.
+
+        :rtype: SharedFolderAccessError
+        """
+        if not self.is_access_error():
+            raise AttributeError("tag 'access_error' not set")
+        return self._value
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(SetAccessInheritanceError, self)._process_custom_annotations(annotation_type, processor)
+
+    def __repr__(self):
+        return 'SetAccessInheritanceError(%r, %r)' % (self._tag, self._value)
+
+SetAccessInheritanceError_validator = bv.Union(SetAccessInheritanceError)
+
+class ShareFolderArgBase(bb.Struct):
     """
     :ivar acl_update_policy: Who can add and remove members of this shared
         folder.
@@ -10948,6 +11530,7 @@ class ShareFolderArgBase(object):
         to set this policy to ``SharedLinkPolicy.members``.
     :ivar viewer_info_policy: Who can enable/disable viewer info for this shared
         folder.
+    :ivar access_inheritance: The access inheritance settings for the folder.
     """
 
     __slots__ = [
@@ -10963,6 +11546,8 @@ class ShareFolderArgBase(object):
         '_shared_link_policy_present',
         '_viewer_info_policy_value',
         '_viewer_info_policy_present',
+        '_access_inheritance_value',
+        '_access_inheritance_present',
     ]
 
     _has_required_fields = True
@@ -10973,7 +11558,8 @@ class ShareFolderArgBase(object):
                  force_async=None,
                  member_policy=None,
                  shared_link_policy=None,
-                 viewer_info_policy=None):
+                 viewer_info_policy=None,
+                 access_inheritance=None):
         self._acl_update_policy_value = None
         self._acl_update_policy_present = False
         self._force_async_value = None
@@ -10986,6 +11572,8 @@ class ShareFolderArgBase(object):
         self._shared_link_policy_present = False
         self._viewer_info_policy_value = None
         self._viewer_info_policy_present = False
+        self._access_inheritance_value = None
+        self._access_inheritance_present = False
         if acl_update_policy is not None:
             self.acl_update_policy = acl_update_policy
         if force_async is not None:
@@ -10998,6 +11586,8 @@ class ShareFolderArgBase(object):
             self.shared_link_policy = shared_link_policy
         if viewer_info_policy is not None:
             self.viewer_info_policy = viewer_info_policy
+        if access_inheritance is not None:
+            self.access_inheritance = access_inheritance
 
     @property
     def acl_update_policy(self):
@@ -11153,14 +11743,41 @@ class ShareFolderArgBase(object):
         self._viewer_info_policy_value = None
         self._viewer_info_policy_present = False
 
+    @property
+    def access_inheritance(self):
+        """
+        The access inheritance settings for the folder.
+
+        :rtype: AccessInheritance
+        """
+        if self._access_inheritance_present:
+            return self._access_inheritance_value
+        else:
+            return AccessInheritance.inherit
+
+    @access_inheritance.setter
+    def access_inheritance(self, val):
+        self._access_inheritance_validator.validate_type_only(val)
+        self._access_inheritance_value = val
+        self._access_inheritance_present = True
+
+    @access_inheritance.deleter
+    def access_inheritance(self):
+        self._access_inheritance_value = None
+        self._access_inheritance_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ShareFolderArgBase, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
-        return 'ShareFolderArgBase(path={!r}, acl_update_policy={!r}, force_async={!r}, member_policy={!r}, shared_link_policy={!r}, viewer_info_policy={!r})'.format(
+        return 'ShareFolderArgBase(path={!r}, acl_update_policy={!r}, force_async={!r}, member_policy={!r}, shared_link_policy={!r}, viewer_info_policy={!r}, access_inheritance={!r})'.format(
             self._path_value,
             self._acl_update_policy_value,
             self._force_async_value,
             self._member_policy_value,
             self._shared_link_policy_value,
             self._viewer_info_policy_value,
+            self._access_inheritance_value,
         )
 
 ShareFolderArgBase_validator = bv.Struct(ShareFolderArgBase)
@@ -11190,6 +11807,7 @@ class ShareFolderArg(ShareFolderArgBase):
                  member_policy=None,
                  shared_link_policy=None,
                  viewer_info_policy=None,
+                 access_inheritance=None,
                  actions=None,
                  link_settings=None):
         super(ShareFolderArg, self).__init__(path,
@@ -11197,7 +11815,8 @@ class ShareFolderArg(ShareFolderArgBase):
                                              force_async,
                                              member_policy,
                                              shared_link_policy,
-                                             viewer_info_policy)
+                                             viewer_info_policy,
+                                             access_inheritance)
         self._actions_value = None
         self._actions_present = False
         self._link_settings_value = None
@@ -11262,14 +11881,18 @@ class ShareFolderArg(ShareFolderArgBase):
         self._link_settings_value = None
         self._link_settings_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ShareFolderArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
-        return 'ShareFolderArg(path={!r}, acl_update_policy={!r}, force_async={!r}, member_policy={!r}, shared_link_policy={!r}, viewer_info_policy={!r}, actions={!r}, link_settings={!r})'.format(
+        return 'ShareFolderArg(path={!r}, acl_update_policy={!r}, force_async={!r}, member_policy={!r}, shared_link_policy={!r}, viewer_info_policy={!r}, access_inheritance={!r}, actions={!r}, link_settings={!r})'.format(
             self._path_value,
             self._acl_update_policy_value,
             self._force_async_value,
             self._member_policy_value,
             self._shared_link_policy_value,
             self._viewer_info_policy_value,
+            self._access_inheritance_value,
             self._actions_value,
             self._link_settings_value,
         )
@@ -11363,6 +11986,9 @@ class ShareFolderErrorBase(bb.Union):
             raise AttributeError("tag 'bad_path' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ShareFolderErrorBase, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ShareFolderErrorBase(%r, %r)' % (self._tag, self._value)
 
@@ -11389,12 +12015,15 @@ class ShareFolderError(ShareFolderErrorBase):
         """
         return self._tag == 'no_permission'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ShareFolderError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ShareFolderError(%r, %r)' % (self._tag, self._value)
 
 ShareFolderError_validator = bv.Union(ShareFolderError)
 
-class ShareFolderJobStatus(async.PollResultBase):
+class ShareFolderJobStatus(async_.PollResultBase):
     """
     This class acts as a tagged union. Only one of the ``is_*`` methods will
     return true. To get the associated value of a tag (if one exists), use the
@@ -11464,12 +12093,15 @@ class ShareFolderJobStatus(async.PollResultBase):
             raise AttributeError("tag 'failed' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ShareFolderJobStatus, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'ShareFolderJobStatus(%r, %r)' % (self._tag, self._value)
 
 ShareFolderJobStatus_validator = bv.Union(ShareFolderJobStatus)
 
-class ShareFolderLaunch(async.LaunchResultBase):
+class ShareFolderLaunch(async_.LaunchResultBase):
     """
     This class acts as a tagged union. Only one of the ``is_*`` methods will
     return true. To get the associated value of a tag (if one exists), use the
@@ -11504,6 +12136,9 @@ class ShareFolderLaunch(async.LaunchResultBase):
         if not self.is_complete():
             raise AttributeError("tag 'complete' not set")
         return self._value
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ShareFolderLaunch, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'ShareFolderLaunch(%r, %r)' % (self._tag, self._value)
@@ -11704,6 +12339,9 @@ class SharePathError(bb.Union):
             raise AttributeError("tag 'already_shared' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(SharePathError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'SharePathError(%r, %r)' % (self._tag, self._value)
 
@@ -11806,6 +12444,9 @@ class SharedContentLinkMetadata(SharedContentLinkMetadataBase):
         self._url_value = None
         self._url_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(SharedContentLinkMetadata, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'SharedContentLinkMetadata(audience_options={!r}, current_audience={!r}, link_permissions={!r}, password_protected={!r}, url={!r}, access_level={!r}, audience_restricting_shared_folder={!r}, expiry={!r}, audience_exceptions={!r})'.format(
             self._audience_options_value,
@@ -11821,7 +12462,7 @@ class SharedContentLinkMetadata(SharedContentLinkMetadataBase):
 
 SharedContentLinkMetadata_validator = bv.Struct(SharedContentLinkMetadata)
 
-class SharedFileMembers(object):
+class SharedFileMembers(bb.Struct):
     """
     Shared file user, group, and invitee membership. Used for the results of
     :meth:`dropbox.dropbox.Dropbox.sharing_list_file_members` and
@@ -11973,6 +12614,9 @@ class SharedFileMembers(object):
         self._cursor_value = None
         self._cursor_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(SharedFileMembers, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'SharedFileMembers(users={!r}, groups={!r}, invitees={!r}, cursor={!r})'.format(
             self._users_value,
@@ -11983,7 +12627,7 @@ class SharedFileMembers(object):
 
 SharedFileMembers_validator = bv.Struct(SharedFileMembers)
 
-class SharedFileMetadata(object):
+class SharedFileMetadata(bb.Struct):
     """
     Properties of the shared file.
 
@@ -12286,7 +12930,7 @@ class SharedFileMetadata(object):
         The team that owns the file. This field is not present if the file is
         not owned by a team.
 
-        :rtype: users.Team_validator
+        :rtype: users.Team
         """
         if self._owner_team_present:
             return self._owner_team_value
@@ -12492,6 +13136,9 @@ class SharedFileMetadata(object):
         self._time_invited_value = None
         self._time_invited_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(SharedFileMetadata, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'SharedFileMetadata(id={!r}, name={!r}, policy={!r}, preview_url={!r}, access_type={!r}, expected_link_metadata={!r}, link_metadata={!r}, owner_display_names={!r}, owner_team={!r}, parent_shared_folder_id={!r}, path_display={!r}, path_lower={!r}, permissions={!r}, time_invited={!r})'.format(
             self._id_value,
@@ -12523,7 +13170,7 @@ class SharedFolderAccessError(bb.Union):
     :ivar invalid_id: This shared folder ID is invalid.
     :ivar not_a_member: The user is not a member of the shared folder thus
         cannot access it.
-    :ivar email_unverified: The current user's e-mail address is unverified.
+    :ivar email_unverified: Never set.
     :ivar unmounted: The shared folder is unmounted.
     """
 
@@ -12578,6 +13225,9 @@ class SharedFolderAccessError(bb.Union):
         :rtype: bool
         """
         return self._tag == 'other'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(SharedFolderAccessError, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'SharedFolderAccessError(%r, %r)' % (self._tag, self._value)
@@ -12660,12 +13310,15 @@ class SharedFolderMemberError(bb.Union):
             raise AttributeError("tag 'no_explicit_access' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(SharedFolderMemberError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'SharedFolderMemberError(%r, %r)' % (self._tag, self._value)
 
 SharedFolderMemberError_validator = bv.Union(SharedFolderMemberError)
 
-class SharedFolderMembers(object):
+class SharedFolderMembers(bb.Struct):
     """
     Shared folder user and group membership.
 
@@ -12811,6 +13464,9 @@ class SharedFolderMembers(object):
         self._cursor_value = None
         self._cursor_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(SharedFolderMembers, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'SharedFolderMembers(users={!r}, groups={!r}, invitees={!r}, cursor={!r})'.format(
             self._users_value,
@@ -12821,7 +13477,7 @@ class SharedFolderMembers(object):
 
 SharedFolderMembers_validator = bv.Struct(SharedFolderMembers)
 
-class SharedFolderMetadataBase(object):
+class SharedFolderMetadataBase(bb.Struct):
     """
     Properties of the shared folder.
 
@@ -13002,7 +13658,7 @@ class SharedFolderMetadataBase(object):
         The team that owns the folder. This field is not present if the folder
         is not owned by a team.
 
-        :rtype: users.Team_validator
+        :rtype: users.Team
         """
         if self._owner_team_present:
             return self._owner_team_value
@@ -13077,6 +13733,9 @@ class SharedFolderMetadataBase(object):
         self._path_lower_value = None
         self._path_lower_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(SharedFolderMetadataBase, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'SharedFolderMetadataBase(access_type={!r}, is_inside_team_folder={!r}, is_team_folder={!r}, owner_display_names={!r}, owner_team={!r}, parent_shared_folder_id={!r}, path_lower={!r})'.format(
             self._access_type_value,
@@ -13106,6 +13765,8 @@ class SharedFolderMetadata(SharedFolderMetadataBase):
     :ivar shared_folder_id: The ID of the shared folder.
     :ivar time_invited: Timestamp indicating when the current user was invited
         to this shared folder.
+    :ivar access_inheritance: Whether the folder inherits its members from its
+        parent.
     """
 
     __slots__ = [
@@ -13123,6 +13784,8 @@ class SharedFolderMetadata(SharedFolderMetadataBase):
         '_shared_folder_id_present',
         '_time_invited_value',
         '_time_invited_present',
+        '_access_inheritance_value',
+        '_access_inheritance_present',
     ]
 
     _has_required_fields = True
@@ -13141,7 +13804,8 @@ class SharedFolderMetadata(SharedFolderMetadataBase):
                  parent_shared_folder_id=None,
                  path_lower=None,
                  link_metadata=None,
-                 permissions=None):
+                 permissions=None,
+                 access_inheritance=None):
         super(SharedFolderMetadata, self).__init__(access_type,
                                                    is_inside_team_folder,
                                                    is_team_folder,
@@ -13163,6 +13827,8 @@ class SharedFolderMetadata(SharedFolderMetadataBase):
         self._shared_folder_id_present = False
         self._time_invited_value = None
         self._time_invited_present = False
+        self._access_inheritance_value = None
+        self._access_inheritance_present = False
         if link_metadata is not None:
             self.link_metadata = link_metadata
         if name is not None:
@@ -13177,6 +13843,8 @@ class SharedFolderMetadata(SharedFolderMetadataBase):
             self.shared_folder_id = shared_folder_id
         if time_invited is not None:
             self.time_invited = time_invited
+        if access_inheritance is not None:
+            self.access_inheritance = access_inheritance
 
     @property
     def link_metadata(self):
@@ -13349,8 +14017,34 @@ class SharedFolderMetadata(SharedFolderMetadataBase):
         self._time_invited_value = None
         self._time_invited_present = False
 
+    @property
+    def access_inheritance(self):
+        """
+        Whether the folder inherits its members from its parent.
+
+        :rtype: AccessInheritance
+        """
+        if self._access_inheritance_present:
+            return self._access_inheritance_value
+        else:
+            return AccessInheritance.inherit
+
+    @access_inheritance.setter
+    def access_inheritance(self, val):
+        self._access_inheritance_validator.validate_type_only(val)
+        self._access_inheritance_value = val
+        self._access_inheritance_present = True
+
+    @access_inheritance.deleter
+    def access_inheritance(self):
+        self._access_inheritance_value = None
+        self._access_inheritance_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(SharedFolderMetadata, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
-        return 'SharedFolderMetadata(access_type={!r}, is_inside_team_folder={!r}, is_team_folder={!r}, name={!r}, policy={!r}, preview_url={!r}, shared_folder_id={!r}, time_invited={!r}, owner_display_names={!r}, owner_team={!r}, parent_shared_folder_id={!r}, path_lower={!r}, link_metadata={!r}, permissions={!r})'.format(
+        return 'SharedFolderMetadata(access_type={!r}, is_inside_team_folder={!r}, is_team_folder={!r}, name={!r}, policy={!r}, preview_url={!r}, shared_folder_id={!r}, time_invited={!r}, owner_display_names={!r}, owner_team={!r}, parent_shared_folder_id={!r}, path_lower={!r}, link_metadata={!r}, permissions={!r}, access_inheritance={!r})'.format(
             self._access_type_value,
             self._is_inside_team_folder_value,
             self._is_team_folder_value,
@@ -13365,6 +14059,7 @@ class SharedFolderMetadata(SharedFolderMetadataBase):
             self._path_lower_value,
             self._link_metadata_value,
             self._permissions_value,
+            self._access_inheritance_value,
         )
 
 SharedFolderMetadata_validator = bv.Struct(SharedFolderMetadata)
@@ -13444,6 +14139,9 @@ class SharedLinkAccessFailureReason(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(SharedLinkAccessFailureReason, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'SharedLinkAccessFailureReason(%r, %r)' % (self._tag, self._value)
 
@@ -13504,12 +14202,15 @@ class SharedLinkPolicy(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(SharedLinkPolicy, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'SharedLinkPolicy(%r, %r)' % (self._tag, self._value)
 
 SharedLinkPolicy_validator = bv.Union(SharedLinkPolicy)
 
-class SharedLinkSettings(object):
+class SharedLinkSettings(bb.Struct):
     """
     :ivar requested_visibility: The requested access for this shared link.
     :ivar link_password: If ``requested_visibility`` is
@@ -13626,6 +14327,9 @@ class SharedLinkSettings(object):
         self._expires_value = None
         self._expires_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(SharedLinkSettings, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'SharedLinkSettings(requested_visibility={!r}, link_password={!r}, expires={!r})'.format(
             self._requested_visibility_value,
@@ -13673,6 +14377,9 @@ class SharedLinkSettingsError(bb.Union):
         :rtype: bool
         """
         return self._tag == 'not_authorized'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(SharedLinkSettingsError, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'SharedLinkSettingsError(%r, %r)' % (self._tag, self._value)
@@ -13760,6 +14467,9 @@ class SharingFileAccessError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(SharingFileAccessError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'SharingFileAccessError(%r, %r)' % (self._tag, self._value)
 
@@ -13799,12 +14509,15 @@ class SharingUserError(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(SharingUserError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'SharingUserError(%r, %r)' % (self._tag, self._value)
 
 SharingUserError_validator = bv.Union(SharingUserError)
 
-class TeamMemberInfo(object):
+class TeamMemberInfo(bb.Struct):
     """
     Information about a team member.
 
@@ -13847,7 +14560,7 @@ class TeamMemberInfo(object):
         """
         Information about the member's team.
 
-        :rtype: users.Team_validator
+        :rtype: users.Team
         """
         if self._team_info_present:
             return self._team_info_value
@@ -13915,6 +14628,9 @@ class TeamMemberInfo(object):
         self._member_id_value = None
         self._member_id_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TeamMemberInfo, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TeamMemberInfo(team_info={!r}, display_name={!r}, member_id={!r})'.format(
             self._team_info_value,
@@ -13924,7 +14640,7 @@ class TeamMemberInfo(object):
 
 TeamMemberInfo_validator = bv.Struct(TeamMemberInfo)
 
-class TransferFolderArg(object):
+class TransferFolderArg(bb.Struct):
     """
     :ivar shared_folder_id: The ID for the shared folder.
     :ivar to_dropbox_id: A account or team member ID to transfer ownership to.
@@ -13996,6 +14712,9 @@ class TransferFolderArg(object):
     def to_dropbox_id(self):
         self._to_dropbox_id_value = None
         self._to_dropbox_id_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TransferFolderArg, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'TransferFolderArg(shared_folder_id={!r}, to_dropbox_id={!r})'.format(
@@ -14124,12 +14843,15 @@ class TransferFolderError(bb.Union):
             raise AttributeError("tag 'access_error' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TransferFolderError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TransferFolderError(%r, %r)' % (self._tag, self._value)
 
 TransferFolderError_validator = bv.Union(TransferFolderError)
 
-class UnmountFolderArg(object):
+class UnmountFolderArg(bb.Struct):
     """
     :ivar shared_folder_id: The ID for the shared folder.
     """
@@ -14170,6 +14892,9 @@ class UnmountFolderArg(object):
     def shared_folder_id(self):
         self._shared_folder_id_value = None
         self._shared_folder_id_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(UnmountFolderArg, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'UnmountFolderArg(shared_folder_id={!r})'.format(
@@ -14252,12 +14977,15 @@ class UnmountFolderError(bb.Union):
             raise AttributeError("tag 'access_error' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(UnmountFolderError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'UnmountFolderError(%r, %r)' % (self._tag, self._value)
 
 UnmountFolderError_validator = bv.Union(UnmountFolderError)
 
-class UnshareFileArg(object):
+class UnshareFileArg(bb.Struct):
     """
     Arguments for :meth:`dropbox.dropbox.Dropbox.sharing_unshare_file`.
 
@@ -14300,6 +15028,9 @@ class UnshareFileArg(object):
     def file(self):
         self._file_value = None
         self._file_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(UnshareFileArg, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'UnshareFileArg(file={!r})'.format(
@@ -14387,12 +15118,15 @@ class UnshareFileError(bb.Union):
             raise AttributeError("tag 'access_error' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(UnshareFileError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'UnshareFileError(%r, %r)' % (self._tag, self._value)
 
 UnshareFileError_validator = bv.Union(UnshareFileError)
 
-class UnshareFolderArg(object):
+class UnshareFolderArg(bb.Struct):
     """
     :ivar shared_folder_id: The ID for the shared folder.
     :ivar leave_a_copy: If true, members of this shared folder will get a copy
@@ -14469,6 +15203,9 @@ class UnshareFolderArg(object):
     def leave_a_copy(self):
         self._leave_a_copy_value = None
         self._leave_a_copy_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(UnshareFolderArg, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'UnshareFolderArg(shared_folder_id={!r}, leave_a_copy={!r})'.format(
@@ -14561,6 +15298,9 @@ class UnshareFolderError(bb.Union):
             raise AttributeError("tag 'access_error' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(UnshareFolderError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'UnshareFolderError(%r, %r)' % (self._tag, self._value)
 
@@ -14584,6 +15324,9 @@ class UpdateFileMemberArgs(ChangeFileMemberAccessArgs):
                                                    member,
                                                    access_level)
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(UpdateFileMemberArgs, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'UpdateFileMemberArgs(file={!r}, member={!r}, access_level={!r})'.format(
             self._file_value,
@@ -14593,7 +15336,7 @@ class UpdateFileMemberArgs(ChangeFileMemberAccessArgs):
 
 UpdateFileMemberArgs_validator = bv.Struct(UpdateFileMemberArgs)
 
-class UpdateFolderMemberArg(object):
+class UpdateFolderMemberArg(bb.Struct):
     """
     :ivar shared_folder_id: The ID for the shared folder.
     :ivar member: The member of the shared folder to update.  Only the
@@ -14700,6 +15443,9 @@ class UpdateFolderMemberArg(object):
     def access_level(self):
         self._access_level_value = None
         self._access_level_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(UpdateFolderMemberArg, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'UpdateFolderMemberArg(shared_folder_id={!r}, member={!r}, access_level={!r})'.format(
@@ -14849,12 +15595,15 @@ class UpdateFolderMemberError(bb.Union):
             raise AttributeError("tag 'no_explicit_access' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(UpdateFolderMemberError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'UpdateFolderMemberError(%r, %r)' % (self._tag, self._value)
 
 UpdateFolderMemberError_validator = bv.Union(UpdateFolderMemberError)
 
-class UpdateFolderPolicyArg(object):
+class UpdateFolderPolicyArg(bb.Struct):
     """
     If any of the policies are unset, then they retain their current setting.
 
@@ -15116,6 +15865,9 @@ class UpdateFolderPolicyArg(object):
         self._actions_value = None
         self._actions_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(UpdateFolderPolicyArg, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'UpdateFolderPolicyArg(shared_folder_id={!r}, member_policy={!r}, acl_update_policy={!r}, viewer_info_policy={!r}, shared_link_policy={!r}, link_settings={!r}, actions={!r})'.format(
             self._shared_folder_id_value,
@@ -15237,6 +15989,9 @@ class UpdateFolderPolicyError(bb.Union):
             raise AttributeError("tag 'access_error' not set")
         return self._value
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(UpdateFolderPolicyError, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'UpdateFolderPolicyError(%r, %r)' % (self._tag, self._value)
 
@@ -15294,6 +16049,9 @@ class UserMembershipInfo(MembershipInfo):
         self._user_value = None
         self._user_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(UserMembershipInfo, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'UserMembershipInfo(access_type={!r}, user={!r}, permissions={!r}, initials={!r}, is_inherited={!r})'.format(
             self._access_type_value,
@@ -15312,11 +16070,15 @@ class UserFileMembershipInfo(UserMembershipInfo):
 
     :ivar time_last_seen: The UTC timestamp of when the user has last seen the
         content, if they have.
+    :ivar platform_type: The platform on which the user has last seen the
+        content, or unknown.
     """
 
     __slots__ = [
         '_time_last_seen_value',
         '_time_last_seen_present',
+        '_platform_type_value',
+        '_platform_type_present',
     ]
 
     _has_required_fields = True
@@ -15327,7 +16089,8 @@ class UserFileMembershipInfo(UserMembershipInfo):
                  permissions=None,
                  initials=None,
                  is_inherited=None,
-                 time_last_seen=None):
+                 time_last_seen=None,
+                 platform_type=None):
         super(UserFileMembershipInfo, self).__init__(access_type,
                                                      user,
                                                      permissions,
@@ -15335,8 +16098,12 @@ class UserFileMembershipInfo(UserMembershipInfo):
                                                      is_inherited)
         self._time_last_seen_value = None
         self._time_last_seen_present = False
+        self._platform_type_value = None
+        self._platform_type_present = False
         if time_last_seen is not None:
             self.time_last_seen = time_last_seen
+        if platform_type is not None:
+            self.platform_type = platform_type
 
     @property
     def time_last_seen(self):
@@ -15365,19 +16132,49 @@ class UserFileMembershipInfo(UserMembershipInfo):
         self._time_last_seen_value = None
         self._time_last_seen_present = False
 
+    @property
+    def platform_type(self):
+        """
+        The platform on which the user has last seen the content, or unknown.
+
+        :rtype: seen_state.PlatformType
+        """
+        if self._platform_type_present:
+            return self._platform_type_value
+        else:
+            return None
+
+    @platform_type.setter
+    def platform_type(self, val):
+        if val is None:
+            del self.platform_type
+            return
+        self._platform_type_validator.validate_type_only(val)
+        self._platform_type_value = val
+        self._platform_type_present = True
+
+    @platform_type.deleter
+    def platform_type(self):
+        self._platform_type_value = None
+        self._platform_type_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(UserFileMembershipInfo, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
-        return 'UserFileMembershipInfo(access_type={!r}, user={!r}, permissions={!r}, initials={!r}, is_inherited={!r}, time_last_seen={!r})'.format(
+        return 'UserFileMembershipInfo(access_type={!r}, user={!r}, permissions={!r}, initials={!r}, is_inherited={!r}, time_last_seen={!r}, platform_type={!r})'.format(
             self._access_type_value,
             self._user_value,
             self._permissions_value,
             self._initials_value,
             self._is_inherited_value,
             self._time_last_seen_value,
+            self._platform_type_value,
         )
 
 UserFileMembershipInfo_validator = bv.Struct(UserFileMembershipInfo)
 
-class UserInfo(object):
+class UserInfo(bb.Struct):
     """
     Basic information about a user. Use
     :meth:`dropbox.dropbox.Dropbox.sharing_users_account` and
@@ -15385,6 +16182,8 @@ class UserInfo(object):
     detailed information.
 
     :ivar account_id: The account ID of the user.
+    :ivar email: Email address of user.
+    :ivar display_name: The display name of the user.
     :ivar same_team: If the user is in the same team as current user.
     :ivar team_member_id: The team member ID of the shared folder member. Only
         present if ``same_team`` is true.
@@ -15393,6 +16192,10 @@ class UserInfo(object):
     __slots__ = [
         '_account_id_value',
         '_account_id_present',
+        '_email_value',
+        '_email_present',
+        '_display_name_value',
+        '_display_name_present',
         '_same_team_value',
         '_same_team_present',
         '_team_member_id_value',
@@ -15403,16 +16206,26 @@ class UserInfo(object):
 
     def __init__(self,
                  account_id=None,
+                 email=None,
+                 display_name=None,
                  same_team=None,
                  team_member_id=None):
         self._account_id_value = None
         self._account_id_present = False
+        self._email_value = None
+        self._email_present = False
+        self._display_name_value = None
+        self._display_name_present = False
         self._same_team_value = None
         self._same_team_present = False
         self._team_member_id_value = None
         self._team_member_id_present = False
         if account_id is not None:
             self.account_id = account_id
+        if email is not None:
+            self.email = email
+        if display_name is not None:
+            self.display_name = display_name
         if same_team is not None:
             self.same_team = same_team
         if team_member_id is not None:
@@ -15440,6 +16253,52 @@ class UserInfo(object):
     def account_id(self):
         self._account_id_value = None
         self._account_id_present = False
+
+    @property
+    def email(self):
+        """
+        Email address of user.
+
+        :rtype: str
+        """
+        if self._email_present:
+            return self._email_value
+        else:
+            raise AttributeError("missing required field 'email'")
+
+    @email.setter
+    def email(self, val):
+        val = self._email_validator.validate(val)
+        self._email_value = val
+        self._email_present = True
+
+    @email.deleter
+    def email(self):
+        self._email_value = None
+        self._email_present = False
+
+    @property
+    def display_name(self):
+        """
+        The display name of the user.
+
+        :rtype: str
+        """
+        if self._display_name_present:
+            return self._display_name_value
+        else:
+            raise AttributeError("missing required field 'display_name'")
+
+    @display_name.setter
+    def display_name(self, val):
+        val = self._display_name_validator.validate(val)
+        self._display_name_value = val
+        self._display_name_present = True
+
+    @display_name.deleter
+    def display_name(self):
+        self._display_name_value = None
+        self._display_name_present = False
 
     @property
     def same_team(self):
@@ -15491,9 +16350,14 @@ class UserInfo(object):
         self._team_member_id_value = None
         self._team_member_id_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(UserInfo, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
-        return 'UserInfo(account_id={!r}, same_team={!r}, team_member_id={!r})'.format(
+        return 'UserInfo(account_id={!r}, email={!r}, display_name={!r}, same_team={!r}, team_member_id={!r})'.format(
             self._account_id_value,
+            self._email_value,
+            self._display_name_value,
             self._same_team_value,
             self._team_member_id_value,
         )
@@ -15541,6 +16405,9 @@ class ViewerInfoPolicy(bb.Union):
         :rtype: bool
         """
         return self._tag == 'other'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(ViewerInfoPolicy, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'ViewerInfoPolicy(%r, %r)' % (self._tag, self._value)
@@ -15631,13 +16498,15 @@ class Visibility(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(Visibility, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'Visibility(%r, %r)' % (self._tag, self._value)
 
 Visibility_validator = bv.Union(Visibility)
 
 DropboxId_validator = bv.String(min_length=1)
-FileId_validator = bv.String(min_length=1, pattern=u'id:.*')
 GetSharedLinkFileArg_validator = GetSharedLinkMetadataArg_validator
 GetSharedLinkFileArg = GetSharedLinkMetadataArg
 Id_validator = files.Id_validator
@@ -15647,6 +16516,19 @@ ReadPath_validator = files.ReadPath_validator
 Rev_validator = files.Rev_validator
 TeamInfo_validator = users.Team_validator
 TeamInfo = users.Team
+AccessInheritance._inherit_validator = bv.Void()
+AccessInheritance._no_inherit_validator = bv.Void()
+AccessInheritance._other_validator = bv.Void()
+AccessInheritance._tagmap = {
+    'inherit': AccessInheritance._inherit_validator,
+    'no_inherit': AccessInheritance._no_inherit_validator,
+    'other': AccessInheritance._other_validator,
+}
+
+AccessInheritance.inherit = AccessInheritance('inherit')
+AccessInheritance.no_inherit = AccessInheritance('no_inherit')
+AccessInheritance.other = AccessInheritance('other')
+
 AccessLevel._owner_validator = bv.Void()
 AccessLevel._editor_validator = bv.Void()
 AccessLevel._viewer_validator = bv.Void()
@@ -15964,6 +16846,7 @@ FileAction._edit_contents_validator = bv.Void()
 FileAction._enable_viewer_info_validator = bv.Void()
 FileAction._invite_viewer_validator = bv.Void()
 FileAction._invite_viewer_no_comment_validator = bv.Void()
+FileAction._invite_editor_validator = bv.Void()
 FileAction._unshare_validator = bv.Void()
 FileAction._relinquish_membership_validator = bv.Void()
 FileAction._share_link_validator = bv.Void()
@@ -15975,6 +16858,7 @@ FileAction._tagmap = {
     'enable_viewer_info': FileAction._enable_viewer_info_validator,
     'invite_viewer': FileAction._invite_viewer_validator,
     'invite_viewer_no_comment': FileAction._invite_viewer_no_comment_validator,
+    'invite_editor': FileAction._invite_editor_validator,
     'unshare': FileAction._unshare_validator,
     'relinquish_membership': FileAction._relinquish_membership_validator,
     'share_link': FileAction._share_link_validator,
@@ -15987,6 +16871,7 @@ FileAction.edit_contents = FileAction('edit_contents')
 FileAction.enable_viewer_info = FileAction('enable_viewer_info')
 FileAction.invite_viewer = FileAction('invite_viewer')
 FileAction.invite_viewer_no_comment = FileAction('invite_viewer_no_comment')
+FileAction.invite_editor = FileAction('invite_editor')
 FileAction.unshare = FileAction('unshare')
 FileAction.relinquish_membership = FileAction('relinquish_membership')
 FileAction.share_link = FileAction('share_link')
@@ -16139,6 +17024,7 @@ FolderAction._unshare_validator = bv.Void()
 FolderAction._leave_a_copy_validator = bv.Void()
 FolderAction._share_link_validator = bv.Void()
 FolderAction._create_link_validator = bv.Void()
+FolderAction._set_access_inheritance_validator = bv.Void()
 FolderAction._other_validator = bv.Void()
 FolderAction._tagmap = {
     'change_options': FolderAction._change_options_validator,
@@ -16154,6 +17040,7 @@ FolderAction._tagmap = {
     'leave_a_copy': FolderAction._leave_a_copy_validator,
     'share_link': FolderAction._share_link_validator,
     'create_link': FolderAction._create_link_validator,
+    'set_access_inheritance': FolderAction._set_access_inheritance_validator,
     'other': FolderAction._other_validator,
 }
 
@@ -16170,6 +17057,7 @@ FolderAction.unshare = FolderAction('unshare')
 FolderAction.leave_a_copy = FolderAction('leave_a_copy')
 FolderAction.share_link = FolderAction('share_link')
 FolderAction.create_link = FolderAction('create_link')
+FolderAction.set_access_inheritance = FolderAction('set_access_inheritance')
 FolderAction.other = FolderAction('other')
 
 FolderLinkMetadata._field_names_ = set([])
@@ -16434,7 +17322,7 @@ JobStatus._tagmap = {
     'complete': JobStatus._complete_validator,
     'failed': JobStatus._failed_validator,
 }
-JobStatus._tagmap.update(async.PollResultBase._tagmap)
+JobStatus._tagmap.update(async_.PollResultBase._tagmap)
 
 JobStatus.complete = JobStatus('complete')
 
@@ -16465,17 +17353,20 @@ LinkAction.other = LinkAction('other')
 
 LinkAudience._public_validator = bv.Void()
 LinkAudience._team_validator = bv.Void()
+LinkAudience._no_one_validator = bv.Void()
 LinkAudience._members_validator = bv.Void()
 LinkAudience._other_validator = bv.Void()
 LinkAudience._tagmap = {
     'public': LinkAudience._public_validator,
     'team': LinkAudience._team_validator,
+    'no_one': LinkAudience._no_one_validator,
     'members': LinkAudience._members_validator,
     'other': LinkAudience._other_validator,
 }
 
 LinkAudience.public = LinkAudience('public')
 LinkAudience.team = LinkAudience('team')
+LinkAudience.no_one = LinkAudience('no_one')
 LinkAudience.members = LinkAudience('members')
 LinkAudience.other = LinkAudience('other')
 
@@ -17125,7 +18016,7 @@ RemoveMemberJobStatus._tagmap = {
     'complete': RemoveMemberJobStatus._complete_validator,
     'failed': RemoveMemberJobStatus._failed_validator,
 }
-RemoveMemberJobStatus._tagmap.update(async.PollResultBase._tagmap)
+RemoveMemberJobStatus._tagmap.update(async_.PollResultBase._tagmap)
 
 RequestedVisibility._public_validator = bv.Void()
 RequestedVisibility._team_only_validator = bv.Void()
@@ -17166,12 +18057,36 @@ RevokeSharedLinkError._tagmap.update(SharedLinkError._tagmap)
 
 RevokeSharedLinkError.shared_link_malformed = RevokeSharedLinkError('shared_link_malformed')
 
+SetAccessInheritanceArg._access_inheritance_validator = AccessInheritance_validator
+SetAccessInheritanceArg._shared_folder_id_validator = common.SharedFolderId_validator
+SetAccessInheritanceArg._all_field_names_ = set([
+    'access_inheritance',
+    'shared_folder_id',
+])
+SetAccessInheritanceArg._all_fields_ = [
+    ('access_inheritance', SetAccessInheritanceArg._access_inheritance_validator),
+    ('shared_folder_id', SetAccessInheritanceArg._shared_folder_id_validator),
+]
+
+SetAccessInheritanceError._access_error_validator = SharedFolderAccessError_validator
+SetAccessInheritanceError._no_permission_validator = bv.Void()
+SetAccessInheritanceError._other_validator = bv.Void()
+SetAccessInheritanceError._tagmap = {
+    'access_error': SetAccessInheritanceError._access_error_validator,
+    'no_permission': SetAccessInheritanceError._no_permission_validator,
+    'other': SetAccessInheritanceError._other_validator,
+}
+
+SetAccessInheritanceError.no_permission = SetAccessInheritanceError('no_permission')
+SetAccessInheritanceError.other = SetAccessInheritanceError('other')
+
 ShareFolderArgBase._acl_update_policy_validator = bv.Nullable(AclUpdatePolicy_validator)
 ShareFolderArgBase._force_async_validator = bv.Boolean()
 ShareFolderArgBase._member_policy_validator = bv.Nullable(MemberPolicy_validator)
 ShareFolderArgBase._path_validator = files.WritePath_validator
 ShareFolderArgBase._shared_link_policy_validator = bv.Nullable(SharedLinkPolicy_validator)
 ShareFolderArgBase._viewer_info_policy_validator = bv.Nullable(ViewerInfoPolicy_validator)
+ShareFolderArgBase._access_inheritance_validator = AccessInheritance_validator
 ShareFolderArgBase._all_field_names_ = set([
     'acl_update_policy',
     'force_async',
@@ -17179,6 +18094,7 @@ ShareFolderArgBase._all_field_names_ = set([
     'path',
     'shared_link_policy',
     'viewer_info_policy',
+    'access_inheritance',
 ])
 ShareFolderArgBase._all_fields_ = [
     ('acl_update_policy', ShareFolderArgBase._acl_update_policy_validator),
@@ -17187,6 +18103,7 @@ ShareFolderArgBase._all_fields_ = [
     ('path', ShareFolderArgBase._path_validator),
     ('shared_link_policy', ShareFolderArgBase._shared_link_policy_validator),
     ('viewer_info_policy', ShareFolderArgBase._viewer_info_policy_validator),
+    ('access_inheritance', ShareFolderArgBase._access_inheritance_validator),
 ]
 
 ShareFolderArg._actions_validator = bv.Nullable(bv.List(FolderAction_validator))
@@ -17232,13 +18149,13 @@ ShareFolderJobStatus._tagmap = {
     'complete': ShareFolderJobStatus._complete_validator,
     'failed': ShareFolderJobStatus._failed_validator,
 }
-ShareFolderJobStatus._tagmap.update(async.PollResultBase._tagmap)
+ShareFolderJobStatus._tagmap.update(async_.PollResultBase._tagmap)
 
 ShareFolderLaunch._complete_validator = SharedFolderMetadata_validator
 ShareFolderLaunch._tagmap = {
     'complete': ShareFolderLaunch._complete_validator,
 }
-ShareFolderLaunch._tagmap.update(async.LaunchResultBase._tagmap)
+ShareFolderLaunch._tagmap.update(async_.LaunchResultBase._tagmap)
 
 SharePathError._is_file_validator = bv.Void()
 SharePathError._inside_shared_folder_validator = bv.Void()
@@ -17314,7 +18231,7 @@ SharedFileMembers._all_fields_ = [
 ]
 
 SharedFileMetadata._access_type_validator = bv.Nullable(AccessLevel_validator)
-SharedFileMetadata._id_validator = FileId_validator
+SharedFileMetadata._id_validator = files.FileId_validator
 SharedFileMetadata._expected_link_metadata_validator = bv.Nullable(ExpectedSharedContentLinkMetadata_validator)
 SharedFileMetadata._link_metadata_validator = bv.Nullable(SharedContentLinkMetadata_validator)
 SharedFileMetadata._name_validator = bv.String()
@@ -17444,6 +18361,7 @@ SharedFolderMetadata._policy_validator = FolderPolicy_validator
 SharedFolderMetadata._preview_url_validator = bv.String()
 SharedFolderMetadata._shared_folder_id_validator = common.SharedFolderId_validator
 SharedFolderMetadata._time_invited_validator = common.DropboxTimestamp_validator
+SharedFolderMetadata._access_inheritance_validator = AccessInheritance_validator
 SharedFolderMetadata._all_field_names_ = SharedFolderMetadataBase._all_field_names_.union(set([
     'link_metadata',
     'name',
@@ -17452,6 +18370,7 @@ SharedFolderMetadata._all_field_names_ = SharedFolderMetadataBase._all_field_nam
     'preview_url',
     'shared_folder_id',
     'time_invited',
+    'access_inheritance',
 ]))
 SharedFolderMetadata._all_fields_ = SharedFolderMetadataBase._all_fields_ + [
     ('link_metadata', SharedFolderMetadata._link_metadata_validator),
@@ -17461,6 +18380,7 @@ SharedFolderMetadata._all_fields_ = SharedFolderMetadataBase._all_fields_ + [
     ('preview_url', SharedFolderMetadata._preview_url_validator),
     ('shared_folder_id', SharedFolderMetadata._shared_folder_id_validator),
     ('time_invited', SharedFolderMetadata._time_invited_validator),
+    ('access_inheritance', SharedFolderMetadata._access_inheritance_validator),
 ]
 
 SharedLinkAccessFailureReason._login_required_validator = bv.Void()
@@ -17763,19 +18683,32 @@ UserMembershipInfo._all_field_names_ = MembershipInfo._all_field_names_.union(se
 UserMembershipInfo._all_fields_ = MembershipInfo._all_fields_ + [('user', UserMembershipInfo._user_validator)]
 
 UserFileMembershipInfo._time_last_seen_validator = bv.Nullable(common.DropboxTimestamp_validator)
-UserFileMembershipInfo._all_field_names_ = UserMembershipInfo._all_field_names_.union(set(['time_last_seen']))
-UserFileMembershipInfo._all_fields_ = UserMembershipInfo._all_fields_ + [('time_last_seen', UserFileMembershipInfo._time_last_seen_validator)]
+UserFileMembershipInfo._platform_type_validator = bv.Nullable(seen_state.PlatformType_validator)
+UserFileMembershipInfo._all_field_names_ = UserMembershipInfo._all_field_names_.union(set([
+    'time_last_seen',
+    'platform_type',
+]))
+UserFileMembershipInfo._all_fields_ = UserMembershipInfo._all_fields_ + [
+    ('time_last_seen', UserFileMembershipInfo._time_last_seen_validator),
+    ('platform_type', UserFileMembershipInfo._platform_type_validator),
+]
 
 UserInfo._account_id_validator = users_common.AccountId_validator
+UserInfo._email_validator = bv.String()
+UserInfo._display_name_validator = bv.String()
 UserInfo._same_team_validator = bv.Boolean()
 UserInfo._team_member_id_validator = bv.Nullable(bv.String())
 UserInfo._all_field_names_ = set([
     'account_id',
+    'email',
+    'display_name',
     'same_team',
     'team_member_id',
 ])
 UserInfo._all_fields_ = [
     ('account_id', UserInfo._account_id_validator),
+    ('email', UserInfo._email_validator),
+    ('display_name', UserInfo._display_name_validator),
     ('same_team', UserInfo._same_team_validator),
     ('team_member_id', UserInfo._team_member_id_validator),
 ]
@@ -17817,6 +18750,7 @@ Visibility.other = Visibility('other')
 
 add_file_member = bb.Route(
     'add_file_member',
+    1,
     False,
     AddFileMemberArgs_validator,
     bv.List(FileMemberActionResult_validator),
@@ -17826,6 +18760,7 @@ add_file_member = bb.Route(
 )
 add_folder_member = bb.Route(
     'add_folder_member',
+    1,
     False,
     AddFolderMemberArg_validator,
     bv.Void(),
@@ -17835,6 +18770,7 @@ add_folder_member = bb.Route(
 )
 change_file_member_access = bb.Route(
     'change_file_member_access',
+    1,
     True,
     ChangeFileMemberAccessArgs_validator,
     FileMemberActionResult_validator,
@@ -17844,33 +18780,37 @@ change_file_member_access = bb.Route(
 )
 check_job_status = bb.Route(
     'check_job_status',
+    1,
     False,
-    async.PollArg_validator,
+    async_.PollArg_validator,
     JobStatus_validator,
-    async.PollError_validator,
+    async_.PollError_validator,
     {'host': u'api',
      'style': u'rpc'},
 )
 check_remove_member_job_status = bb.Route(
     'check_remove_member_job_status',
+    1,
     False,
-    async.PollArg_validator,
+    async_.PollArg_validator,
     RemoveMemberJobStatus_validator,
-    async.PollError_validator,
+    async_.PollError_validator,
     {'host': u'api',
      'style': u'rpc'},
 )
 check_share_job_status = bb.Route(
     'check_share_job_status',
+    1,
     False,
-    async.PollArg_validator,
+    async_.PollArg_validator,
     ShareFolderJobStatus_validator,
-    async.PollError_validator,
+    async_.PollError_validator,
     {'host': u'api',
      'style': u'rpc'},
 )
 create_shared_link = bb.Route(
     'create_shared_link',
+    1,
     True,
     CreateSharedLinkArg_validator,
     PathLinkMetadata_validator,
@@ -17880,6 +18820,7 @@ create_shared_link = bb.Route(
 )
 create_shared_link_with_settings = bb.Route(
     'create_shared_link_with_settings',
+    1,
     False,
     CreateSharedLinkWithSettingsArg_validator,
     SharedLinkMetadata_validator,
@@ -17889,6 +18830,7 @@ create_shared_link_with_settings = bb.Route(
 )
 get_file_metadata = bb.Route(
     'get_file_metadata',
+    1,
     False,
     GetFileMetadataArg_validator,
     SharedFileMetadata_validator,
@@ -17898,6 +18840,7 @@ get_file_metadata = bb.Route(
 )
 get_file_metadata_batch = bb.Route(
     'get_file_metadata/batch',
+    1,
     False,
     GetFileMetadataBatchArg_validator,
     bv.List(GetFileMetadataBatchResult_validator),
@@ -17907,6 +18850,7 @@ get_file_metadata_batch = bb.Route(
 )
 get_folder_metadata = bb.Route(
     'get_folder_metadata',
+    1,
     False,
     GetMetadataArgs_validator,
     SharedFolderMetadata_validator,
@@ -17916,6 +18860,7 @@ get_folder_metadata = bb.Route(
 )
 get_shared_link_file = bb.Route(
     'get_shared_link_file',
+    1,
     False,
     GetSharedLinkFileArg_validator,
     SharedLinkMetadata_validator,
@@ -17925,6 +18870,7 @@ get_shared_link_file = bb.Route(
 )
 get_shared_link_metadata = bb.Route(
     'get_shared_link_metadata',
+    1,
     False,
     GetSharedLinkMetadataArg_validator,
     SharedLinkMetadata_validator,
@@ -17934,6 +18880,7 @@ get_shared_link_metadata = bb.Route(
 )
 get_shared_links = bb.Route(
     'get_shared_links',
+    1,
     True,
     GetSharedLinksArg_validator,
     GetSharedLinksResult_validator,
@@ -17943,6 +18890,7 @@ get_shared_links = bb.Route(
 )
 list_file_members = bb.Route(
     'list_file_members',
+    1,
     False,
     ListFileMembersArg_validator,
     SharedFileMembers_validator,
@@ -17952,6 +18900,7 @@ list_file_members = bb.Route(
 )
 list_file_members_batch = bb.Route(
     'list_file_members/batch',
+    1,
     False,
     ListFileMembersBatchArg_validator,
     bv.List(ListFileMembersBatchResult_validator),
@@ -17961,6 +18910,7 @@ list_file_members_batch = bb.Route(
 )
 list_file_members_continue = bb.Route(
     'list_file_members/continue',
+    1,
     False,
     ListFileMembersContinueArg_validator,
     SharedFileMembers_validator,
@@ -17970,6 +18920,7 @@ list_file_members_continue = bb.Route(
 )
 list_folder_members = bb.Route(
     'list_folder_members',
+    1,
     False,
     ListFolderMembersArgs_validator,
     SharedFolderMembers_validator,
@@ -17979,6 +18930,7 @@ list_folder_members = bb.Route(
 )
 list_folder_members_continue = bb.Route(
     'list_folder_members/continue',
+    1,
     False,
     ListFolderMembersContinueArg_validator,
     SharedFolderMembers_validator,
@@ -17988,6 +18940,7 @@ list_folder_members_continue = bb.Route(
 )
 list_folders = bb.Route(
     'list_folders',
+    1,
     False,
     ListFoldersArgs_validator,
     ListFoldersResult_validator,
@@ -17997,6 +18950,7 @@ list_folders = bb.Route(
 )
 list_folders_continue = bb.Route(
     'list_folders/continue',
+    1,
     False,
     ListFoldersContinueArg_validator,
     ListFoldersResult_validator,
@@ -18006,6 +18960,7 @@ list_folders_continue = bb.Route(
 )
 list_mountable_folders = bb.Route(
     'list_mountable_folders',
+    1,
     False,
     ListFoldersArgs_validator,
     ListFoldersResult_validator,
@@ -18015,6 +18970,7 @@ list_mountable_folders = bb.Route(
 )
 list_mountable_folders_continue = bb.Route(
     'list_mountable_folders/continue',
+    1,
     False,
     ListFoldersContinueArg_validator,
     ListFoldersResult_validator,
@@ -18024,6 +18980,7 @@ list_mountable_folders_continue = bb.Route(
 )
 list_received_files = bb.Route(
     'list_received_files',
+    1,
     False,
     ListFilesArg_validator,
     ListFilesResult_validator,
@@ -18033,6 +18990,7 @@ list_received_files = bb.Route(
 )
 list_received_files_continue = bb.Route(
     'list_received_files/continue',
+    1,
     False,
     ListFilesContinueArg_validator,
     ListFilesResult_validator,
@@ -18042,6 +19000,7 @@ list_received_files_continue = bb.Route(
 )
 list_shared_links = bb.Route(
     'list_shared_links',
+    1,
     False,
     ListSharedLinksArg_validator,
     ListSharedLinksResult_validator,
@@ -18051,6 +19010,7 @@ list_shared_links = bb.Route(
 )
 modify_shared_link_settings = bb.Route(
     'modify_shared_link_settings',
+    1,
     False,
     ModifySharedLinkSettingsArgs_validator,
     SharedLinkMetadata_validator,
@@ -18060,6 +19020,7 @@ modify_shared_link_settings = bb.Route(
 )
 mount_folder = bb.Route(
     'mount_folder',
+    1,
     False,
     MountFolderArg_validator,
     SharedFolderMetadata_validator,
@@ -18069,6 +19030,7 @@ mount_folder = bb.Route(
 )
 relinquish_file_membership = bb.Route(
     'relinquish_file_membership',
+    1,
     False,
     RelinquishFileMembershipArg_validator,
     bv.Void(),
@@ -18078,15 +19040,17 @@ relinquish_file_membership = bb.Route(
 )
 relinquish_folder_membership = bb.Route(
     'relinquish_folder_membership',
+    1,
     False,
     RelinquishFolderMembershipArg_validator,
-    async.LaunchEmptyResult_validator,
+    async_.LaunchEmptyResult_validator,
     RelinquishFolderMembershipError_validator,
     {'host': u'api',
      'style': u'rpc'},
 )
 remove_file_member = bb.Route(
     'remove_file_member',
+    1,
     True,
     RemoveFileMemberArg_validator,
     FileMemberActionIndividualResult_validator,
@@ -18096,6 +19060,7 @@ remove_file_member = bb.Route(
 )
 remove_file_member_2 = bb.Route(
     'remove_file_member_2',
+    1,
     False,
     RemoveFileMemberArg_validator,
     FileMemberRemoveActionResult_validator,
@@ -18105,15 +19070,17 @@ remove_file_member_2 = bb.Route(
 )
 remove_folder_member = bb.Route(
     'remove_folder_member',
+    1,
     False,
     RemoveFolderMemberArg_validator,
-    async.LaunchResultBase_validator,
+    async_.LaunchResultBase_validator,
     RemoveFolderMemberError_validator,
     {'host': u'api',
      'style': u'rpc'},
 )
 revoke_shared_link = bb.Route(
     'revoke_shared_link',
+    1,
     False,
     RevokeSharedLinkArg_validator,
     bv.Void(),
@@ -18121,8 +19088,19 @@ revoke_shared_link = bb.Route(
     {'host': u'api',
      'style': u'rpc'},
 )
+set_access_inheritance = bb.Route(
+    'set_access_inheritance',
+    1,
+    False,
+    SetAccessInheritanceArg_validator,
+    ShareFolderLaunch_validator,
+    SetAccessInheritanceError_validator,
+    {'host': u'api',
+     'style': u'rpc'},
+)
 share_folder = bb.Route(
     'share_folder',
+    1,
     False,
     ShareFolderArg_validator,
     ShareFolderLaunch_validator,
@@ -18132,6 +19110,7 @@ share_folder = bb.Route(
 )
 transfer_folder = bb.Route(
     'transfer_folder',
+    1,
     False,
     TransferFolderArg_validator,
     bv.Void(),
@@ -18141,6 +19120,7 @@ transfer_folder = bb.Route(
 )
 unmount_folder = bb.Route(
     'unmount_folder',
+    1,
     False,
     UnmountFolderArg_validator,
     bv.Void(),
@@ -18150,6 +19130,7 @@ unmount_folder = bb.Route(
 )
 unshare_file = bb.Route(
     'unshare_file',
+    1,
     False,
     UnshareFileArg_validator,
     bv.Void(),
@@ -18159,15 +19140,17 @@ unshare_file = bb.Route(
 )
 unshare_folder = bb.Route(
     'unshare_folder',
+    1,
     False,
     UnshareFolderArg_validator,
-    async.LaunchEmptyResult_validator,
+    async_.LaunchEmptyResult_validator,
     UnshareFolderError_validator,
     {'host': u'api',
      'style': u'rpc'},
 )
 update_file_member = bb.Route(
     'update_file_member',
+    1,
     False,
     UpdateFileMemberArgs_validator,
     MemberAccessLevelResult_validator,
@@ -18177,6 +19160,7 @@ update_file_member = bb.Route(
 )
 update_folder_member = bb.Route(
     'update_folder_member',
+    1,
     False,
     UpdateFolderMemberArg_validator,
     MemberAccessLevelResult_validator,
@@ -18186,6 +19170,7 @@ update_folder_member = bb.Route(
 )
 update_folder_policy = bb.Route(
     'update_folder_policy',
+    1,
     False,
     UpdateFolderPolicyArg_validator,
     SharedFolderMetadata_validator,
@@ -18229,6 +19214,7 @@ ROUTES = {
     'remove_file_member_2': remove_file_member_2,
     'remove_folder_member': remove_folder_member,
     'revoke_shared_link': revoke_shared_link,
+    'set_access_inheritance': set_access_inheritance,
     'share_folder': share_folder,
     'transfer_folder': transfer_folder,
     'unmount_folder': unmount_folder,

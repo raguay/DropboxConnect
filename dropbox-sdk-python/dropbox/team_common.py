@@ -6,7 +6,7 @@
 try:
     from . import stone_validators as bv
     from . import stone_base as bb
-except (SystemError, ValueError):
+except (ImportError, SystemError, ValueError):
     # Catch errors raised when importing a relative module when not in a package.
     # This makes testing this file directly (outside of a package) easier.
     import stone_validators as bv
@@ -16,7 +16,7 @@ try:
     from . import (
         common,
     )
-except (SystemError, ValueError):
+except (ImportError, SystemError, ValueError):
     import common
 
 class GroupManagementType(bb.Union):
@@ -74,12 +74,15 @@ class GroupManagementType(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupManagementType, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GroupManagementType(%r, %r)' % (self._tag, self._value)
 
 GroupManagementType_validator = bv.Union(GroupManagementType)
 
-class GroupSummary(object):
+class GroupSummary(bb.Struct):
     """
     Information about a group.
 
@@ -205,7 +208,7 @@ class GroupSummary(object):
         """
         The number of members in the group.
 
-        :rtype: long
+        :rtype: int
         """
         if self._member_count_present:
             return self._member_count_value
@@ -248,6 +251,9 @@ class GroupSummary(object):
     def group_management_type(self):
         self._group_management_type_value = None
         self._group_management_type_present = False
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupSummary, self)._process_custom_annotations(annotation_type, processor)
 
     def __repr__(self):
         return 'GroupSummary(group_name={!r}, group_id={!r}, group_management_type={!r}, group_external_id={!r}, member_count={!r})'.format(
@@ -305,12 +311,80 @@ class GroupType(bb.Union):
         """
         return self._tag == 'other'
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(GroupType, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'GroupType(%r, %r)' % (self._tag, self._value)
 
 GroupType_validator = bv.Union(GroupType)
 
-class TimeRange(object):
+class MemberSpaceLimitType(bb.Union):
+    """
+    The type of the space limit imposed on a team member.
+
+    This class acts as a tagged union. Only one of the ``is_*`` methods will
+    return true. To get the associated value of a tag (if one exists), use the
+    corresponding ``get_*`` method.
+
+    :ivar off: The team member does not have imposed space limit.
+    :ivar alert_only: The team member has soft imposed space limit - the limit
+        is used for display and for notifications.
+    :ivar stop_sync: The team member has hard imposed space limit - Dropbox file
+        sync will stop after the limit is reached.
+    """
+
+    _catch_all = 'other'
+    # Attribute is overwritten below the class definition
+    off = None
+    # Attribute is overwritten below the class definition
+    alert_only = None
+    # Attribute is overwritten below the class definition
+    stop_sync = None
+    # Attribute is overwritten below the class definition
+    other = None
+
+    def is_off(self):
+        """
+        Check if the union tag is ``off``.
+
+        :rtype: bool
+        """
+        return self._tag == 'off'
+
+    def is_alert_only(self):
+        """
+        Check if the union tag is ``alert_only``.
+
+        :rtype: bool
+        """
+        return self._tag == 'alert_only'
+
+    def is_stop_sync(self):
+        """
+        Check if the union tag is ``stop_sync``.
+
+        :rtype: bool
+        """
+        return self._tag == 'stop_sync'
+
+    def is_other(self):
+        """
+        Check if the union tag is ``other``.
+
+        :rtype: bool
+        """
+        return self._tag == 'other'
+
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(MemberSpaceLimitType, self)._process_custom_annotations(annotation_type, processor)
+
+    def __repr__(self):
+        return 'MemberSpaceLimitType(%r, %r)' % (self._tag, self._value)
+
+MemberSpaceLimitType_validator = bv.Union(MemberSpaceLimitType)
+
+class TimeRange(bb.Struct):
     """
     Time range.
 
@@ -391,6 +465,9 @@ class TimeRange(object):
         self._end_time_value = None
         self._end_time_present = False
 
+    def _process_custom_annotations(self, annotation_type, processor):
+        super(TimeRange, self)._process_custom_annotations(annotation_type, processor)
+
     def __repr__(self):
         return 'TimeRange(start_time={!r}, end_time={!r})'.format(
             self._start_time_value,
@@ -452,6 +529,22 @@ GroupType._tagmap = {
 GroupType.team = GroupType('team')
 GroupType.user_managed = GroupType('user_managed')
 GroupType.other = GroupType('other')
+
+MemberSpaceLimitType._off_validator = bv.Void()
+MemberSpaceLimitType._alert_only_validator = bv.Void()
+MemberSpaceLimitType._stop_sync_validator = bv.Void()
+MemberSpaceLimitType._other_validator = bv.Void()
+MemberSpaceLimitType._tagmap = {
+    'off': MemberSpaceLimitType._off_validator,
+    'alert_only': MemberSpaceLimitType._alert_only_validator,
+    'stop_sync': MemberSpaceLimitType._stop_sync_validator,
+    'other': MemberSpaceLimitType._other_validator,
+}
+
+MemberSpaceLimitType.off = MemberSpaceLimitType('off')
+MemberSpaceLimitType.alert_only = MemberSpaceLimitType('alert_only')
+MemberSpaceLimitType.stop_sync = MemberSpaceLimitType('stop_sync')
+MemberSpaceLimitType.other = MemberSpaceLimitType('other')
 
 TimeRange._start_time_validator = bv.Nullable(common.DropboxTimestamp_validator)
 TimeRange._end_time_validator = bv.Nullable(common.DropboxTimestamp_validator)
